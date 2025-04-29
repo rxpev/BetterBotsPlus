@@ -32,7 +32,7 @@ int g_BombsiteEntities[64]; g_NumBombsites = 0; // Store bombsite entity referen
 int g_iBotTargetSpotOffset, g_iBotNearbyEnemiesOffset, g_iFireWeaponOffset, g_iEnemyVisibleOffset, g_iBotProfileOffset, g_iBotSafeTimeOffset, g_iBotEnemyOffset, g_iBotLookAtSpotStateOffset, g_iBotMoraleOffset, g_iBotTaskOffset, g_iBotDispositionOffset;
 float g_fBotOrigin[MAXPLAYERS+1][3], g_fTargetPos[MAXPLAYERS+1][3], g_fNadeTarget[MAXPLAYERS+1][3];
 float g_fRoundStart, g_fFreezeTimeEnd;
-float g_fNadeClaimTime[MAX_NADES];
+float g_fNadeClaimTime[MAX_NADES], g_fLastMoveTime[MAXPLAYERS + 1];
 float g_fLastFakeDefuseTime[MAXPLAYERS + 1];
 float g_fLookAngleMaxAccel[MAXPLAYERS+1], g_fReactionTime[MAXPLAYERS+1], g_fAggression[MAXPLAYERS+1], g_fShootTimestamp[MAXPLAYERS+1], g_fThrowNadeTimestamp[MAXPLAYERS+1], g_fCrouchTimestamp[MAXPLAYERS+1];
 new g_fBombsiteDisableTime = 0.0; // Store when bombsite was disabled
@@ -4614,6 +4614,13 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 {
 	g_bBombPlanted = !!GameRules_GetProp("m_bBombPlanted");
 	float currentTime = GetGameTime();
+	float velocity[3];
+	GetEntPropVector(client, Prop_Data, "m_vecVelocity", velocity);
+	float speed = GetVectorLength(velocity);
+	if (speed > 0.0)
+	{
+	    g_fLastMoveTime[client] = GetGameTime();
+	}
 
 	if (IsValidClient(client) && IsPlayerAlive(client) && IsFakeClient(client))
 	{
@@ -4679,27 +4686,37 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			
 			if (g_iDoingSmokeNum[client] != -1 && !BotMimic_IsPlayerMimicing(client))
 			{
-				float fDisToNade;
-				float fTargetPos[3], fLookPos[3];
-				char szReplayPath[128];
+			    float fDisToNade;
+			    float fTargetPos[3], fLookPos[3];
+			    char szReplayPath[128];
 
-				Array_Copy(g_fNadePos[g_iDoingSmokeNum[client]], fTargetPos, 3);
-				Array_Copy(g_fNadeLook[g_iDoingSmokeNum[client]], fLookPos, 3);
-				strcopy(szReplayPath, sizeof(szReplayPath), g_szReplay[g_iDoingSmokeNum[client]]);
+			    Array_Copy(g_fNadePos[g_iDoingSmokeNum[client]], fTargetPos, 3);
+			    Array_Copy(g_fNadeLook[g_iDoingSmokeNum[client]], fLookPos, 3);
+			    strcopy(szReplayPath, sizeof(szReplayPath), g_szReplay[g_iDoingSmokeNum[client]]);
 
-				fDisToNade = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
-				BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
+			    fDisToNade = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
+			    BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
 
-				if (fDisToNade < 25.0)
-				{
-					BotSetLookAt(client, "Use entity", fLookPos, PRIORITY_HIGH, 2.0, false, 3.0, false);
-
-					if (view_as<LookAtSpotState>(GetEntData(client, g_iBotLookAtSpotStateOffset)) == LOOK_AT_SPOT &&
-						fSpeed == 0.0 && (GetEntityFlags(client) & FL_ONGROUND))
-					{
-						BotMimic_PlayRecordFromFile(client, szReplayPath);
-					}
-				}
+			    float currentTime = GetGameTime();
+			    bool bIsEnemyVisible = !!GetEntData(client, g_iEnemyVisibleOffset);
+			    if (fDisToNade > 25.0 && !bIsEnemyVisible && (currentTime - g_fLastMoveTime[client]) > 2.0)
+			    {
+			        int iNade = g_iDoingSmokeNum[client];
+			        g_iDoingSmokeNum[client] = -1;
+			        if (iNade != -1)
+			        {
+			            g_fNadeClaimTime[iNade] = 0.0;
+			        }
+			    }
+			    else if (fDisToNade < 25.0)
+			    {
+			        BotSetLookAt(client, "Use entity", fLookPos, PRIORITY_HIGH, 2.0, false, 3.0, false);
+			        if (view_as<LookAtSpotState>(GetEntData(client, g_iBotLookAtSpotStateOffset)) == LOOK_AT_SPOT &&
+			            GetVectorLength(velocity) == 0.0 && (GetEntityFlags(client) & FL_ONGROUND))
+			        {
+			            BotMimic_PlayRecordFromFile(client, szReplayPath);
+			        }
+			    }
 			}
 			
 			if(g_bThrowGrenade[client] && eItems_GetWeaponSlotByDefIndex(iDefIndex) == CS_SLOT_GRENADE)
