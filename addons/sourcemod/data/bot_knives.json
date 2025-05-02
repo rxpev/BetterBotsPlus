@@ -59,6 +59,36 @@
         "wear": 0.07,
         "seed": 572
     },
+    "xertioN": {
+        "definition_index": 515,
+        "skin": 415,
+        "wear": 0.01,
+        "seed": 284
+    },
+    "torzsi": {
+        "definition_index": 521,
+        "skin": 38,
+        "wear": 0.02,
+        "seed": 509
+    },
+    "Brollan": {
+        "definition_index": 507,
+        "skin": 572,
+        "wear": 0.03,
+        "seed": 686
+    },
+    "Jimpphat": {
+        "definition_index": 508,
+        "skin": 416,
+        "wear": 0.03,
+        "seed": 768
+    },
+    "Spinx": {
+        "definition_index": 521,
+        "skin": 12,
+        "wear": 0.14,
+        "seed": 118
+    },
     "donk": {
         "definition_index": 515,
         "skin": 568,
@@ -208,6 +238,96 @@
         "skin": 409,
         "wear": 0.00,
         "seed": 745
+    },
+    "nqz": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 169
+    },
+    "biguzera": {
+        "definition_index": 515,
+        "skin": 572,
+        "wear": 0.02,
+        "seed": 363
+    },
+    "snow": {
+        "definition_index": 507,
+        "skin": 569,
+        "wear": 0.04,
+        "seed": 543
+    },
+    "dgt": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 117
+    },
+    "dav1deuS": {
+        "definition_index": 507,
+        "skin": 568,
+        "wear": 0.01,
+        "seed": 18
+    },
+    "regali": {
+        "definition_index": 508,
+        "skin": 0,
+        "wear": 0,
+        "seed": 0
+    },
+    "INS": {
+        "definition_index": 507,
+        "skin": 421,
+        "wear": 0.00,
+        "seed": 391
+    },
+    "Liazz": {
+        "definition_index": 515,
+        "skin": 0,
+        "wear": 0,
+        "seed": 0
+    },
+    "nettik": {
+        "definition_index": 515,
+        "skin": 42,
+        "wear": 0.25,
+        "seed": 403
+    },
+    "Vexite": {
+        "definition_index": 507,
+        "skin": 415,
+        "wear": 0.01,
+        "seed": 357
+    },
+    "Sonic": {
+        "definition_index": 507,
+        "skin": 419,
+        "wear": 0.00,
+        "seed": 278
+    },
+    "susp": {
+        "definition_index": 515,
+        "skin": 1115,
+        "wear": 0.31,
+        "seed": 443
+    },
+    "phzy": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.02,
+        "seed": 287
+    },
+    "JBa": {
+        "definition_index": 508,
+        "skin": 562,
+        "wear": 0.41,
+        "seed": 788
+    },
+    "stanislaw": {
+        "definition_index": 0,
+        "skin": 0,
+        "wear": 0,
+        "seed": 0
     },
     "Dumbazo": {
         "definition_index": 507,
