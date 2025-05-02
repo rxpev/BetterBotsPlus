@@ -239,9 +239,9 @@ public Action Timer_CheckPlayer(Handle hTimer, any data)
 		bool bHasDefuser = !!GetEntProp(i, Prop_Send, "m_bHasDefuser");
 		int iPrimary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
 		bool bHasPrimary = IsValidEntity(iPrimary);
-		int iWeapon = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
-		int iActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-		bool bHoldingKnife = (weapon != -1 && weapon == activeWeapon);
+		int iWeapon = GetPlayerWeaponSlot(i, CS_SLOT_KNIFE);
+		int iActiveWeapon = GetEntPropEnt(i, Prop_Send, "m_hActiveWeapon");
+		bool bHoldingKnife = (iWeapon != -1 && iWeapon == iActiveWeapon);
 
 		char szDefaultPrimary[64];
 		GetClientWeapon(i, szDefaultPrimary, sizeof(szDefaultPrimary));
@@ -1142,7 +1142,7 @@ public Action CS_OnBuyCommand(int client, const char[] szWeapon)
 	            return Plugin_Changed;
 			}
 	    }
-	    if (strcm(szWeapon, "galilar") == 0)
+	    if (strcmp(szWeapon, "galilar") == 0)
 	    {
 	    	if (iAccount > 2800)
 	    	{
