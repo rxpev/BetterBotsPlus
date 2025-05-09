@@ -60,6 +60,17 @@ char g_szReplay[128][128];
 float g_fNadeTimestamp[128];
 int g_iNadeTeam[128];
 
+//BOT Angle Variables
+float g_fAnglePos[128][3], g_fAngleLook[128][3];
+int g_iAngleDefIndex[128];
+char g_szAngleReplay[128][128];
+float g_fAngleTimestamp[128];
+int g_iAngleTeam[128];
+int g_iMaxAngles;
+int g_iHoldingAngleNum[MAXPLAYERS + 1] = {-1, ...};
+bool g_bAngleClaimed[128];
+bool g_bAngleBlock[MAXPLAYERS + 1] = {false, ...};
+
 static char g_szBoneNames[][] =  {
 	"neck_0", 
 	"pelvis", 
@@ -639,6 +650,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_iPostPlantNadesStartIndex = 0;
 	ParseMapNades(g_szMap);
 	ParsePostPlantNades(g_szMap);
+	ParseMapAngles(g_szMap);
     g_bPostPlantNadesParsed = true;
 
 	int iTeam = g_bIsBombScenario ? CS_TEAM_CT : CS_TEAM_T;
@@ -648,6 +660,11 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
     {
         g_fNadeClaimTime[i] = 0.0;
     }
+
+	for (int i = 0; i < g_iMaxAngles; i++)
+	{
+	    g_bAngleClaimed[i] = false;
+	}
 	
 	g_bFreezetimeEnd = false;
 	g_bEveryoneDead = false;
@@ -667,13 +684,14 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bBotHasForcedBuy[i] = false;
 			g_bIsFakeDefusing[i] = false;
 			g_bBotCompromised[i] = false;
+			g_bAngleBlock[i] = false;
 			g_iTarget[i] = -1;
 			g_iPrevTarget[i] = -1;
 			g_iDoingSmokeNum[i] = -1;
 			g_fShootTimestamp[i] = 0.0;				
 			g_fThrowNadeTimestamp[i] = 0.0;				
-			g_fCrouchTimestamp[i] = 0.0;									
-			
+			g_fCrouchTimestamp[i] = 0.0;								
+			g_iHoldingAngleNum[i] = -1;
 			if(g_bIsBombScenario || g_bIsHostageScenario)
 			{
 				if(GetClientTeam(i) == iTeam)
@@ -826,9 +844,38 @@ public void Timer_CancelFakePlant(Handle timer, any client)
     CreateTimer(5.0, Timer_ResetBombSites, client);
 }
 
-public void Event_OnBombPlanted(Event eEvent, const char[] szName, bool bDontBroadcast)
+public void Event_OnBombPlanted(Event event, const char[] name, bool dontBroadcast)
 {
     g_bBombPlanted = true;
+    
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && IsFakeClient(i) && IsPlayerAlive(i) && GetClientTeam(i) == CS_TEAM_CT)
+        {
+            if (g_iHoldingAngleNum[i] != -1)
+            {
+                if (BotMimic_IsPlayerMimicing(i))
+                {
+                    BotMimic_StopPlayerMimic(i);
+                }
+                
+                g_iHoldingAngleNum[i] = -1;
+                
+                BotCancelMoveTo(i);
+            }
+        }
+    }
+}
+
+void BotCancelMoveTo(int client)
+{
+        float currentPos[3];
+        GetClientAbsOrigin(client, currentPos);
+        BotMoveTo(client, currentPos, FASTEST_ROUTE);
+        
+        float eyePos[3];
+        GetClientEyePosition(client, eyePos);
+        BotSetLookAt(client, "None", eyePos, PRIORITY_UNINTERRUPTABLE, 0.1, false, 0.0, false);
 }
 
 public Action Event_BombBeginDefuse(Event event, const char[] name, bool dontBroadcast) 
@@ -1208,7 +1255,10 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		
 		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
 		{
-			g_fNadeTimestamp[g_iDoingSmokeNum[client]] = GetGameTime();
+			if (g_iDoingSmokeNum[client] != -1)  // Fix applied
+		    {
+		        g_fNadeTimestamp[g_iDoingSmokeNum[client]] = GetGameTime();
+		    }
 			BotMimic_StopPlayerMimic(client);
 			BotEquipBestWeapon(client, true);
 		}
@@ -1316,10 +1366,12 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    g_iDoingSmokeNum[client] = -1;
 			}
 				
-			if(IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1)
-				g_iDoingSmokeNum[client] = GetNearestGrenade(client);
+			if (IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1)
+		    {
+		        g_iDoingSmokeNum[client] = GetNearestGrenade(client);
+		    }
 
-			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1)
+			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1)
 			{
 				int iPostPlantNade = GetNearestPostPlantGrenade(client);
 
@@ -1330,6 +1382,58 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				}
 			}
 			
+			if (GetClientTeam(client) == CS_TEAM_CT && eItems_FindWeaponByDefIndex(client, 9) != -1 && 
+			    g_iHoldingAngleNum[client] == -1 && g_iDoingSmokeNum[client] == -1 && !g_bBombPlanted &&
+			    !g_bAngleBlock[client])
+			{
+			    int availableAngle = GetAvailableAngle(client);
+			    if (availableAngle != -1)
+			    {
+			        g_bAngleClaimed[availableAngle] = true;
+			        g_iHoldingAngleNum[client] = availableAngle;
+			        if (IsItMyChance(75.0))
+			        {
+			        	g_bAngleBlock[client] = true;
+			        	PrintToServer("[ANGLES] Bot lost 25% RNG");
+			        }
+			    }
+			}
+
+			if (g_iHoldingAngleNum[client] != -1)
+			{
+			    static bool wasPlayerMimicing[MAXPLAYERS+1];
+			    bool isCurrentlyMimicing = BotMimic_IsPlayerMimicing(client);
+			    
+			    if (wasPlayerMimicing[client] && !isCurrentlyMimicing)
+			    {
+			        g_iHoldingAngleNum[client] = -1;
+			    }
+			    
+			    wasPlayerMimicing[client] = isCurrentlyMimicing;
+			    
+			    if (!isCurrentlyMimicing)
+			    {
+			        float fDisToAngle;
+			        float fTargetPos[3], fLookPos[3];
+			        char szReplayPath[128];
+			        Array_Copy(g_fAnglePos[g_iHoldingAngleNum[client]], fTargetPos, 3);
+			        Array_Copy(g_fAngleLook[g_iHoldingAngleNum[client]], fLookPos, 3);
+			        strcopy(szReplayPath, sizeof(szReplayPath), g_szAngleReplay[g_iHoldingAngleNum[client]]);
+			        fDisToAngle = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
+			        BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
+			        
+			        if (fDisToAngle < 25.0)
+			        {
+			            BotSetLookAt(client, "Use entity", fLookPos, PRIORITY_HIGH, 2.0, false, 3.0, false);
+			            if (view_as<LookAtSpotState>(GetEntData(client, g_iBotLookAtSpotStateOffset)) == LOOK_AT_SPOT &&
+			                GetVectorLength(velocity) == 0.0 && (GetEntityFlags(client) & FL_ONGROUND))
+			            {
+			                BotMimic_PlayRecordFromFile(client, szReplayPath);
+			            }
+			        }
+			    }
+			}
+
 			if(GetDisposition(client) == SELF_DEFENSE)
 				SetDisposition(client, ENGAGE_AND_INVESTIGATE);
 			
@@ -1616,7 +1720,10 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 
 				if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
 				{
-					g_fNadeTimestamp[g_iDoingSmokeNum[client]] = GetGameTime();
+					if (g_iDoingSmokeNum[client] != -1)
+				    {
+				        g_fNadeTimestamp[g_iDoingSmokeNum[client]] = GetGameTime();
+				    }
 					BotMimic_StopPlayerMimic(client);
 					BotEquipBestWeapon(client, true);
 				}
@@ -1881,6 +1988,58 @@ void ParsePostPlantNades(const char[] szMap)
     } while (kv.GotoNextKey());
     g_iMaxNades = i;
     delete kv;
+}
+
+void ParseMapAngles(const char[] szMap)
+{
+    char szPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_angles.txt");
+
+    if (!FileExists(szPath))
+    {
+        PrintToServer("Configuration file %s not found.", szPath);
+        return;
+    }
+
+    KeyValues kv = new KeyValues("Angles");
+
+    if (!kv.ImportFromFile(szPath))
+    {
+        delete kv;
+        PrintToServer("Unable to parse KeyValues file %s.", szPath);
+        return;
+    }
+
+    if (!kv.JumpToKey(szMap))
+    {
+        delete kv;
+        PrintToServer("No angles found for %s.", szMap);
+        return;
+    }
+
+    if (!kv.GotoFirstSubKey())
+    {
+        delete kv;
+        PrintToServer("Angles not configured correctly for %s.", szMap);
+        return;
+    }
+
+    int i = 0;
+    do
+    {
+        char szTeam[4];
+        kv.GetVector("position", g_fAnglePos[i]);
+        kv.GetVector("lookat", g_fAngleLook[i]);
+        g_iAngleDefIndex[i] = kv.GetNum("nadedefindex");
+        kv.GetString("replay", g_szAngleReplay[i], 128);
+        g_fAngleTimestamp[i] = kv.GetFloat("timestamp");
+        kv.GetString("team", szTeam, sizeof(szTeam));
+        g_iAngleTeam[i] = (strcmp(szTeam, "CT", false) == 0) ? CS_TEAM_CT : CS_TEAM_T;
+        i++;
+    } while (kv.GotoNextKey());
+
+    delete kv;
+    g_iMaxAngles = i;
 }
 
 bool IsProBot(const char[] szName, char[] szCrosshairCode, int iSize)
@@ -2251,6 +2410,31 @@ public int GetNearestPostPlantGrenade(int client)
     }
     
     return iNearestEntity;
+}
+
+int GetAvailableAngle(int client)
+{
+    if (g_bBombPlanted) return -1;
+    if (g_iMaxAngles == 0) return -1;
+    
+    int validAngles[128];
+    int validAngleCount = 0;
+    
+    for (int i = 0; i < g_iMaxAngles; i++)
+    {
+        if (g_bAngleClaimed[i]) continue;
+        
+        if (g_iAngleTeam[i] != CS_TEAM_CT) continue;
+        if (g_iAngleDefIndex[i] != 9) continue;
+        
+        validAngles[validAngleCount] = i;
+        validAngleCount++;
+    }
+    
+    if (validAngleCount == 0) return -1;
+    
+    int randomIndex = GetRandomInt(0, validAngleCount - 1);
+    return validAngles[randomIndex];
 }
 
 stock int GetNearestEntity(int client, char[] szClassname)
