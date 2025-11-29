@@ -47,6 +47,12 @@
         "wear": 0.19,
         "seed": 726
     },
+    "kyousuke": {
+        "definition_index": 525,
+        "skin": 44,
+        "wear": 0.09,
+        "seed": 681
+    },
     "Magisk": {
         "definition_index": 500,
         "skin": 571,
@@ -113,11 +119,65 @@
         "wear": 0.01,
         "seed": 523
     },
+    "zweih": {
+        "definition_index": 507,
+        "skin": 568,
+        "wear": 0.03,
+        "seed": 71
+    },
+    "tN1R": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.02,
+        "seed": 244
+    },
     "chopper": {
         "definition_index": 522,
         "skin": 421,
         "wear": 0.00,
         "seed": 247
+    },
+    "karrigan": {
+        "definition_index": 507,
+        "skin": 59,
+        "wear": 0.22,
+        "seed": 31
+    },
+    "rain": {
+        "definition_index": 515,
+        "skin": 618,
+        "wear": 0.03,
+        "seed": 681
+    },
+    "frozen": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.00,
+        "seed": 700
+    },
+    "broky": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 791
+    },
+    "Twistzz": {
+        "definition_index": 507,
+        "skin": 418,
+        "wear": 0.1,
+        "seed": 167
+    },
+    "jcobbb": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 559
+    },
+    "EliGE": {
+        "definition_index": 525,
+        "skin": 0,
+        "wear": 0,
+        "seed": 0
     },
     "Wicadia": {
         "definition_index": 507,
@@ -328,6 +388,204 @@
         "skin": 0,
         "wear": 0,
         "seed": 0
+    },
+    "kyuubii": {
+        "definition_index": 507,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 916
+    },
+    "prosus": {
+        "definition_index": 525,
+        "skin": 420,
+        "wear": 0.03,
+        "seed": 994
+    },
+    "Krimbo": {
+        "definition_index": 515,
+        "skin": 415,
+        "wear": 0.03,
+        "seed": 946
+    },
+    "hyped": {
+        "definition_index": 508,
+        "skin": 419,
+        "wear": 0.02,
+        "seed": 615
+    },
+    "JDC": {
+        "definition_index": 515,
+        "skin": 59,
+        "wear": 0.03,
+        "seed": 977
+    },
+    "tabseN": {
+        "definition_index": 509,
+        "skin": 416,
+        "wear": 0.01,
+        "seed": 23
+    },
+    "FreeZe": {
+        "definition_index": 508,
+        "skin": 38,
+        "wear": 0.01,
+        "seed": 897
+    },
+    "gr1ks": {
+        "definition_index": 507,
+        "skin": 416,
+        "wear": 0.01,
+        "seed": 644
+    },
+    "JamYoung": {
+        "definition_index": 515,
+        "skin": 418,
+        "wear": 0.02,
+        "seed": 16
+    },
+    "Moseyuh": {
+        "definition_index": 515,
+        "skin": 568,
+        "wear": 0.03,
+        "seed": 6
+    },
+    "Mercury": {
+        "definition_index": 507,
+        "skin": 421,
+        "wear": 0.01,
+        "seed": 533
+    },
+    "Jee": {
+        "definition_index": 515,
+        "skin": 415,
+        "wear": 0.02,
+        "seed": 794
+    },
+    "Attacker": {
+        "definition_index": 508,
+        "skin": 416,
+        "wear": 0.05,
+        "seed": 168
+    },
+    "molodoy": {
+        "definition_index": 507,
+        "skin": 416,
+        "wear": 0.01,
+        "seed": 792
+    },
+    "YEKINDAR": {
+        "definition_index": 508,
+        "skin": 12,
+        "wear": 0.16,
+        "seed": 535
+    },
+    "FalleN": {
+        "definition_index": 515,
+        "skin": 12,
+        "wear": 0.06,
+        "seed": 631
+    },
+    "KSCERATO": {
+        "definition_index": 507,
+        "skin": 415,
+        "wear": 0.02,
+        "seed": 99
+    },
+    "yuurih": {
+        "definition_index": 507,
+        "skin": 413,
+        "wear": 0.02,
+        "seed": 725
+    },
+    "makazze": {
+        "definition_index": 507,
+        "skin": 416,
+        "wear": 0.03,
+        "seed": 427
+    },
+    "iM": {
+        "definition_index": 515,
+        "skin": 415,
+        "wear": 0.01,
+        "seed": 507
+    },
+    "b1t": {
+        "definition_index": 507,
+        "skin": 568,
+        "wear": 0.00,
+        "seed": 221
+    },
+    "w0nderful": {
+        "definition_index": 515,
+        "skin": 12,
+        "wear": 0.09,
+        "seed": 233
+    },
+    "AleksiB": {
+        "definition_index": 522,
+        "skin": 857,
+        "wear": 0.03,
+        "seed": 215
+    },
+    "SunPayus": {
+        "definition_index": 507,
+        "skin": 409,
+        "wear": 0.01,
+        "seed": 506
+    },
+    "huNter-": {
+        "definition_index": 525,
+        "skin": 38,
+        "wear": 0.02,
+        "seed": 24
+    },
+    "HeavyGod": {
+        "definition_index": 507,
+        "skin": 415,
+        "wear": 0.00,
+        "seed": 733
+    },
+    "malbsMd": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.00,
+        "seed": 207
+    },
+    "MATYS": {
+        "definition_index": 509,
+        "skin": 413,
+        "wear": 0.01,
+        "seed": 421
+    },
+    "Maka": {
+        "definition_index": 515,
+        "skin": 418,
+        "wear": 0.02,
+        "seed": 505
+    },
+    "Graviti": {
+        "definition_index": 515,
+        "skin": 38,
+        "wear": 0.03,
+        "seed": 283
+    },
+    "Lucky": {
+        "definition_index": 508,
+        "skin": 421,
+        "wear": 0.00,
+        "seed": 228
+    },
+    "Ex3rcice": {
+        "definition_index": 515,
+        "skin": 12,
+        "wear": 0.13,
+        "seed": 599
+    },
+    "bodyy": {
+        "definition_index": 508,
+        "skin": 567,
+        "wear": 0.17,
+        "seed": 314
     },
     "Dumbazo": {
         "definition_index": 507,
