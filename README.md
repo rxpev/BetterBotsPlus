@@ -6,6 +6,7 @@
 ---
 
 Important note: BetterBotsPlus is based on [CSGOBetterBots](https://github.com/manicogaming/CSGOBetterBots) created by manico.
+
 This plugin is mainly used for [LIGA: Pro Journey](https://github.com/rxpev/LIGA-Pro-Journey).
 
 # 🎮 Features
