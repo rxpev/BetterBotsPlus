@@ -2436,8 +2436,21 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				    }
 				}
 				
-				if ((eItems_GetWeaponSlotByDefIndex(iDefIndex) == CS_SLOT_KNIFE || eItems_GetWeaponSlotByDefIndex(iDefIndex) == CS_SLOT_GRENADE) && GetTask(client) != ESCAPE_FROM_BOMB && GetTask(client) != ESCAPE_FROM_FLAMES)
-						BotEquipBestWeapon(client, true);
+				bool bScriptedGrenadeInProgress = g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client);
+				int iWeaponSlot = eItems_GetWeaponSlotByDefIndex(iDefIndex);
+
+				if ((iWeaponSlot == CS_SLOT_KNIFE || (iWeaponSlot == CS_SLOT_GRENADE && !bScriptedGrenadeInProgress)) &&
+					GetTask(client) != ESCAPE_FROM_BOMB && GetTask(client) != ESCAPE_FROM_FLAMES)
+				{
+					BotEquipBestWeapon(client, true);
+				}
+
+				// Never let bots use grenades by free will.
+				if (iWeaponSlot == CS_SLOT_GRENADE && !bScriptedGrenadeInProgress)
+				{
+					iButtons &= ~IN_ATTACK;
+					iButtons &= ~IN_ATTACK2;
+				}
 				
 				if (bIsEnemyVisible && GetEntityMoveType(client) != MOVETYPE_LADDER)
 				{
