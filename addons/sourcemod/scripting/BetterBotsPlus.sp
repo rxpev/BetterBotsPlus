@@ -239,6 +239,14 @@ public void OnPluginStart()
 	
 	g_cvBotEcoLimit = FindConVar("bot_eco_limit");
 	g_hBotTemplates = new StringMap();
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsFakeClient(i))
+		{
+			SDKHook(i, SDKHook_WeaponCanSwitchTo, Hook_WeaponCanSwitchTo);
+		}
+	}
 }
 
 public void OnMapStart()
@@ -2065,11 +2073,20 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
 
 			    bool bIsEnemyVisible = !!GetEntData(client, g_iEnemyVisibleOffset);
-			    if (fDisToNade > 25.0 && !bIsEnemyVisible && (g_fCurrentTime - g_fLastMoveTime[client]) > 2.0)
+			    bool bStuckOnWayToNade = (g_fCurrentTime - g_fLastMoveTime[client]) > 2.0;
+			    bool bAbortNadeScript = bIsEnemyVisible || bStuckOnWayToNade;
+
+			    if (fDisToNade > 25.0 && bAbortNadeScript)
 			    {
 			        int iNade = g_iDoingSmokeNum[client];
 			        g_iDoingSmokeNum[client] = -1;
+			        g_bThrowGrenade[client] = false;
+			        if (BotMimic_IsPlayerMimicing(client))
+			        {
+			            BotMimic_StopPlayerMimic(client);
+			        }
 			        BotCancelMoveTo(client);
+			        BotEquipBestWeapon(client, true);
 			        if (iNade != -1)
 			        {
 			            g_fNadeClaimTime[iNade] = 0.0;
@@ -2595,9 +2612,28 @@ public OnClientPutInServer(client)
 {
     if (!IsFakeClient(client))
         return;
-
+    SDKHook(client, SDKHook_WeaponCanSwitchTo, Hook_WeaponCanSwitchTo);
     LoadAWPers();
 }
+
+public Action Hook_WeaponCanSwitchTo(int client, int weapon)
+{
+	if (!IsValidClient(client) || !IsPlayerAlive(client) || !IsFakeClient(client) || !IsValidEntity(weapon))
+		return Plugin_Continue;
+
+	char szClassname[64];
+	GetEntityClassname(weapon, szClassname, sizeof(szClassname));
+
+	if (eItems_GetWeaponSlotByClassName(szClassname) != CS_SLOT_GRENADE)
+		return Plugin_Continue;
+
+	bool bScriptedGrenadeInProgress = g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client);
+	if (bScriptedGrenadeInProgress)
+		return Plugin_Continue;
+
+	return Plugin_Stop;
+}
+
 
 public void eItems_OnItemsSynced()
 {
