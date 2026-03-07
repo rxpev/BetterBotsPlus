@@ -3155,8 +3155,11 @@ int FindAWPerWithoutAWP(int rifler)
     int awper = FindTeamAWPer(team);
     if (awper <= 0) return 0;
 
-    if (!IsClientInGame(awper) || !IsPlayerAlive(awper))
+    if (!IsClientInGame(awper))
         return 0;
+    
+    if (!IsPlayerAlive(awper))
+        return awper;
 
     int primary = GetPlayerWeaponSlot(awper, CS_SLOT_PRIMARY);
     if (!IsValidEntity(primary))
