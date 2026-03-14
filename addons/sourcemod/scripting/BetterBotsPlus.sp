@@ -4501,6 +4501,9 @@ stock bool IsFlashDodgeAllowed(int client, bool bIsEnemyVisible)
 	if (!g_bFreezetimeEnd || !IsPlayerAlive(client) || !IsFakeClient(client))
 		return false;
 
+	if (bIsEnemyVisible)
+		return false;
+
 	if (GetEntityMoveType(client) == MOVETYPE_LADDER)
 		return false;
 
@@ -4574,6 +4577,12 @@ stock bool HandleFlashDodge(int client, bool bIsEnemyVisible)
 		float fThreatPos[3];
 		if (!FindThreateningFlash(client, fThreatPos))
 			return false;
+
+		if (IsItMyChance(25.0))
+		{
+			g_fFlashLastDodgeTime[client] = fNow;
+			return false;
+		}
 
 		GetClientEyeAngles(client, g_fFlashSavedAngles[client]);
 		Array_Copy(fThreatPos, g_fFlashThreatPos[client], 3);
