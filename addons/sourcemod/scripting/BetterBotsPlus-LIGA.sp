@@ -26,6 +26,8 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FLASH_DODGE_COOLDOWN 1.5
 #define FLASH_DODGE_SCAN_INTERVAL 0.1
 #define FLASH_DODGE_TURN_TIMEOUT 1.6
+#define FLASH_RECOVER_LOCK_DELAY 0.1
+#define FLASH_RECOVER_LOCK_TIME 0.35
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -112,8 +114,8 @@ bool g_bPeekRolled[MAXPLAYERS + 1];
 bool g_bFlashDodgeActive[MAXPLAYERS + 1];
 bool g_bFlashDodgePopped[MAXPLAYERS + 1];
 float g_fFlashThreatPos[MAXPLAYERS + 1][3];
-float g_fFlashSavedAngles[MAXPLAYERS + 1][3];
 float g_fFlashDodgeReturnTime[MAXPLAYERS + 1];
+float g_fFlashRecoverLockEndTime[MAXPLAYERS + 1];
 float g_fFlashLastDodgeTime[MAXPLAYERS + 1];
 float g_fFlashNextScanTime[MAXPLAYERS + 1];
 
@@ -784,6 +786,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bFlashDodgeActive[i] = false;
 			g_bFlashDodgePopped[i] = false;
 			g_fFlashDodgeReturnTime[i] = 0.0;
+			g_fFlashRecoverLockEndTime[i] = 0.0;
 			g_fFlashNextScanTime[i] = 0.0;
 			if(g_bIsBombScenario || g_bIsHostageScenario)
 			{
@@ -4567,6 +4570,18 @@ bool TryUpgradeWeapon(int client)
     return false;
 }
 
+stock void ClearFlashEffect(int client)
+{
+	if (HasEntProp(client, Prop_Send, "m_flFlashMaxAlpha"))
+		SetEntPropFloat(client, Prop_Send, "m_flFlashMaxAlpha", 0.0);
+
+	if (HasEntProp(client, Prop_Send, "m_flFlashDuration"))
+		SetEntPropFloat(client, Prop_Send, "m_flFlashDuration", 0.0);
+
+	if (HasEntProp(client, Prop_Send, "m_flFlashBangTime"))
+		SetEntPropFloat(client, Prop_Send, "m_flFlashBangTime", 0.0);
+}
+
 public void OnFlashbangDetonate(Event eEvent, const char[] szName, bool bDontBroadcast)
 {
 	float fDetonatePos[3];
@@ -4583,8 +4598,10 @@ public void OnFlashbangDetonate(Event eEvent, const char[] szName, bool bDontBro
 		if (GetVectorDistance(g_fFlashThreatPos[i], fDetonatePos) > 300.0)
 			continue;
 
+		ClearFlashEffect(i);
 		g_bFlashDodgePopped[i] = true;
-		g_fFlashDodgeReturnTime[i] = fNow + 0.2;
+		g_fFlashDodgeReturnTime[i] = fNow + FLASH_RECOVER_LOCK_DELAY;
+		g_fFlashRecoverLockEndTime[i] = 0.0;
 	}
 }
 
@@ -4599,7 +4616,7 @@ stock bool IsFlashDodgeAllowed(int client, bool bIsEnemyVisible)
 	if (GetEntityMoveType(client) == MOVETYPE_LADDER)
 		return false;
 
-	if (g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client) || g_bDoingPeek[client])
+	if (g_bDoingPeek[client])
 		return false;
 
 	return true;
@@ -4641,6 +4658,25 @@ stock bool FindThreateningFlash(int client, float fThreatPos[3])
 	return bFound;
 }
 
+stock void CancelScriptedGrenadeAction(int client)
+{
+	int iNade = g_iDoingSmokeNum[client];
+
+	if (iNade != -1)
+		g_iDoingSmokeNum[client] = -1;
+
+	g_bThrowGrenade[client] = false;
+
+	if (BotMimic_IsPlayerMimicing(client))
+		BotMimic_StopPlayerMimic(client);
+
+	BotCancelMoveTo(client);
+	BotEquipBestWeapon(client, true);
+
+	if (iNade != -1)
+		g_fNadeClaimTime[iNade] = 0.0;
+}
+
 stock void ApplyFlashTurnAway(int client)
 {
 	float fEyes[3], fToFlash[3], fLookPos[3];
@@ -4650,6 +4686,50 @@ stock void ApplyFlashTurnAway(int client)
 	ScaleVector(fToFlash, -300.0);
 	AddVectors(fEyes, fToFlash, fLookPos);
 	BotSetLookAt(client, "FlashDodge", fLookPos, PRIORITY_HIGH, 0.2, false, 3.0, false);
+}
+
+stock bool FindNearestEnemyLookPos(int client, float fLookPos[3])
+{
+	float fClientOrigin[3];
+	GetClientAbsOrigin(client, fClientOrigin);
+
+	int iNearestEnemy = -1;
+	float fNearestDistance = 999999.0;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (!IsValidClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) == GetClientTeam(client))
+			continue;
+
+		float fEnemyOrigin[3];
+		GetClientAbsOrigin(i, fEnemyOrigin);
+
+		float fDistance = GetVectorDistance(fClientOrigin, fEnemyOrigin);
+		if (fDistance < fNearestDistance)
+		{
+			fNearestDistance = fDistance;
+			iNearestEnemy = i;
+		}
+	}
+
+	if (iNearestEnemy == -1)
+		return false;
+
+	GetClientEyePosition(iNearestEnemy, fLookPos);
+	return true;
+}
+
+stock void ApplyFlashRecoverLook(int client)
+{
+	float fLookPos[3];
+	if (FindNearestEnemyLookPos(client, fLookPos))
+	{
+		BotSetLookAt(client, "FlashRecoverEnemy", fLookPos, PRIORITY_HIGH, 0.4, false, 3.0, false);
+		ClearFlashEffect(client);
+		return;
+	}
+
+	ApplyFlashTurnAway(client);
 }
 
 stock bool HandleFlashDodge(int client, bool bIsEnemyVisible)
@@ -4676,11 +4756,12 @@ stock bool HandleFlashDodge(int client, bool bIsEnemyVisible)
 			return false;
 		}
 
-		GetClientEyeAngles(client, g_fFlashSavedAngles[client]);
+		CancelScriptedGrenadeAction(client);
 		Array_Copy(fThreatPos, g_fFlashThreatPos[client], 3);
 		g_bFlashDodgeActive[client] = true;
 		g_bFlashDodgePopped[client] = false;
 		g_fFlashDodgeReturnTime[client] = fNow + FLASH_DODGE_TURN_TIMEOUT;
+		g_fFlashRecoverLockEndTime[client] = 0.0;
 		g_fFlashLastDodgeTime[client] = fNow;
 	}
 
@@ -4698,23 +4779,24 @@ stock bool HandleFlashDodge(int client, bool bIsEnemyVisible)
 		}
 	}
 
-	if (fNow >= g_fFlashDodgeReturnTime[client])
+	if (g_bFlashDodgePopped[client])
 	{
+		if (fNow < g_fFlashDodgeReturnTime[client])
+			return true;
+
+		if (g_fFlashRecoverLockEndTime[client] == 0.0)
+			g_fFlashRecoverLockEndTime[client] = fNow + FLASH_RECOVER_LOCK_TIME;
+
+		ApplyFlashRecoverLook(client);
+
+		if (fNow < g_fFlashRecoverLockEndTime[client])
+			return true;
+
 		g_bFlashDodgeActive[client] = false;
 		g_bFlashDodgePopped[client] = false;
 		g_fFlashDodgeReturnTime[client] = 0.0;
+		g_fFlashRecoverLockEndTime[client] = 0.0;
 		return false;
-	}
-
-	if (g_bFlashDodgePopped[client])
-	{
-		float fRestoreDir[3], fRestoreLook[3];
-		GetViewVector(g_fFlashSavedAngles[client], fRestoreDir);
-		NormalizeVector(fRestoreDir, fRestoreDir);
-		ScaleVector(fRestoreDir, 300.0);
-		AddVectors(g_fBotOrigin[client], fRestoreDir, fRestoreLook);
-		BotSetLookAt(client, "FlashRecover", fRestoreLook, PRIORITY_HIGH, 0.2, false, 3.0, false);
-		return true;
 	}
 
 	return true;
