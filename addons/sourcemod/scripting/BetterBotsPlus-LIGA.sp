@@ -1907,7 +1907,10 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 		if(!g_bFreezetimeEnd && g_bDropWeapon[client] && view_as<LookAtSpotState>(GetEntData(client, g_iBotLookAtSpotStateOffset)) == LOOK_AT_SPOT)
 		{
 			CS_DropWeapon(client, GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY), true);
-			FakeClientCommand(client, "buy %s", g_szPreviousBuy[client]);
+			if (!g_bDonationInProgress[client])
+			{
+				FakeClientCommand(client, "buy %s", g_szPreviousBuy[client]);
+			}
 			g_bDropWeapon[client] = false;
 		}
 		
