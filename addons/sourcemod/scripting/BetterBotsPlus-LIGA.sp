@@ -262,6 +262,7 @@ public void OnPluginStart()
 		if (IsClientInGame(i) && IsFakeClient(i))
 		{
 			SDKHook(i, SDKHook_WeaponCanSwitchTo, Hook_WeaponCanSwitchTo);
+			SDKHook(i, SDKHook_OnTakeDamagePost, OnBotTakeDamagePost);
 		}
 	}
 }
@@ -1121,12 +1122,17 @@ public Action Timer_CancelFakeDefuse(Handle timer, any userid)
 
     PrintToServer("[FAKEDEFUSE] Started fake defuse for client %d", client);
 
-    // Get bot's yaw angle
+    float fClientPos[3], fEnemyLookPos[3], fToEnemy[3];
+    GetClientEyePosition(client, fClientPos);
+
+    bool bHasNearestEnemy = FindNearestEnemyLookPos(client, fEnemyLookPos);
+    if (bHasNearestEnemy)
+        SubtractVectors(fEnemyLookPos, fClientPos, fToEnemy);
+
+    // Fallback to the bot's current facing if no enemy exists.
     float angles[3];
     GetClientEyeAngles(client, angles);
     float yaw = angles[1];
-
-    // Normalize yaw to [-180, 180]
     while (yaw > 180.0) yaw -= 360.0;
     while (yaw < -180.0) yaw += 360.0;
 
@@ -1156,7 +1162,39 @@ public Action Timer_CancelFakeDefuse(Handle timer, any userid)
     // Select direction based on yaw
     int direction;
     char directionName[16];
-    if (yaw >= -45.0 && yaw < 45.0)
+    if (bHasNearestEnemy)
+    {
+        float absX = FloatAbs(fToEnemy[0]);
+        float absY = FloatAbs(fToEnemy[1]);
+
+        if (absY >= absX)
+        {
+            if (fToEnemy[1] >= 0.0)
+            {
+                direction = 0; // North (+Y)
+                strcopy(directionName, sizeof(directionName), "north");
+            }
+            else
+            {
+                direction = 2; // South (-Y)
+                strcopy(directionName, sizeof(directionName), "south");
+            }
+        }
+        else
+        {
+            if (fToEnemy[0] >= 0.0)
+            {
+                direction = 1; // East (+X)
+                strcopy(directionName, sizeof(directionName), "east");
+            }
+            else
+            {
+                direction = 3; // West (-X)
+                strcopy(directionName, sizeof(directionName), "west");
+            }
+        }
+    }
+    else if (yaw >= -45.0 && yaw < 45.0)
     {
         direction = 0; // North
         strcopy(directionName, sizeof(directionName), "north");
@@ -2689,6 +2727,7 @@ public OnClientPutInServer(client)
     if (!IsFakeClient(client))
         return;
     SDKHook(client, SDKHook_WeaponCanSwitchTo, Hook_WeaponCanSwitchTo);
+    SDKHook(client, SDKHook_OnTakeDamagePost, OnBotTakeDamagePost);
     LoadAWPers();
 }
 
@@ -4720,6 +4759,40 @@ stock bool FindNearestEnemyLookPos(int client, float fLookPos[3])
 
 	GetClientEyePosition(iNearestEnemy, fLookPos);
 	return true;
+}
+
+stock void SnapBotToNearestEnemy(int client)
+{
+	float fClientEyes[3], fEnemyLookPos[3], fLookDir[3], fLookAngles[3];
+	GetClientEyePosition(client, fClientEyes);
+
+	if (!FindNearestEnemyLookPos(client, fEnemyLookPos))
+		return;
+
+	SubtractVectors(fEnemyLookPos, fClientEyes, fLookDir);
+	NormalizeVector(fLookDir, fLookDir);
+	GetVectorAngles(fLookDir, fLookAngles);
+	TeleportEntity(client, NULL_VECTOR, fLookAngles, NULL_VECTOR);
+}
+
+public void OnBotTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+{
+	if (!IsValidClient(victim) || !IsFakeClient(victim) || !IsPlayerAlive(victim))
+		return;
+
+	if (damage <= 0.0 || !BotMimic_IsPlayerMimicing(victim))
+		return;
+
+	if (g_iDoingSmokeNum[victim] != -1)
+	{
+		g_fNadeTimestamp[g_iDoingSmokeNum[victim]] = GetGameTime();
+		g_iDoingSmokeNum[victim] = -1;
+	}
+
+	BotMimic_StopPlayerMimic(victim);
+	g_bIsFakeDefusing[victim] = false;
+	SnapBotToNearestEnemy(victim);
+	PrintToServer("[MIMIC] Bot %d took damage (%.1f) - stopping mimic and snapping to nearest enemy", victim, damage);
 }
 
 stock void ApplyFlashRecoverLook(int client)
