@@ -1062,6 +1062,12 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
         return Plugin_Continue;
     }
 
+    if (!IsEnemyWithinRange(client, 1250.0))
+    {
+        PrintToServer("[FAKEDEFUSE] No enemy within 2500 units for client %d. Sticking to actual defuse.", client);
+        return Plugin_Continue;
+    }
+
     int iPlantedC4 = FindEntityByClassname(-1, "planted_c4");
     if (iPlantedC4 != -1) 
     {
@@ -1106,6 +1112,26 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
     }
 
     return Plugin_Continue;
+}
+
+stock bool IsEnemyWithinRange(int client, float range)
+{
+    float fClientOrigin[3];
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsValidClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) == GetClientTeam(client))
+            continue;
+
+        float fEnemyOrigin[3];
+        GetClientAbsOrigin(i, fEnemyOrigin);
+
+        if (GetVectorDistance(fClientOrigin, fEnemyOrigin) <= range)
+            return true;
+    }
+
+    return false;
 }
 
 public Action Timer_CancelFakeDefuse(Handle timer, any userid)
