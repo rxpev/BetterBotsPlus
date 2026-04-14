@@ -4449,17 +4449,6 @@ Action TryReplaceBoughtWeapon(int client, const char[] szWeapon, int iAccount)
                 return Plugin_Changed;
             }
         }
-
-        if (IsItMyChance(5.0))
-        {
-            int iPrice = CS_GetWeaponPrice(client, CSWeapon_AUG);
-            if (iAccount >= iPrice)
-            {
-                AddMoney(client, -iPrice, true, true, "weapon_aug");
-                CSGO_ReplaceWeapon(client, CS_SLOT_PRIMARY, "weapon_aug");
-                return Plugin_Changed;
-            }
-        }
     }
 
     if (strcmp(szWeapon, "galilar") == 0)
