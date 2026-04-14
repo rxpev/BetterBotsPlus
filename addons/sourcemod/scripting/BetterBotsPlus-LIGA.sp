@@ -36,8 +36,8 @@ bool g_bRoundWonCT, g_bRoundWonT;
 bool g_bUseCZ75[MAXPLAYERS+1], g_bUseUSP[MAXPLAYERS+1], g_bUseM4A1S[MAXPLAYERS+1], g_bDontSwitch[MAXPLAYERS+1], g_bDropWeapon[MAXPLAYERS+1], g_bHasGottenDrop[MAXPLAYERS+1];
 bool g_bIsProBot[MAXPLAYERS+1], g_bIsIntermediateBot[MAXPLAYERS+1], g_bIsAWPer[MAXPLAYERS+1], g_bThrowGrenade[MAXPLAYERS+1], g_bUncrouch[MAXPLAYERS+1];
 bool g_bBotHasForcedBuy[MAXPLAYERS+1]; g_bDidFakePlant[MAXPLAYERS+1], g_bFakePlantRolled[MAXPLAYERS + 1], g_bIsFakeDefusing[MAXPLAYERS+1], g_bDidRun[MAXPLAYERS+1], g_bBotCompromised[MAXPLAYERS+1], g_bDidInitialSwitch[MAXPLAYERS+1];
-bool g_bHasSavedAWP[MAXPLAYERS + 1], g_bHasPickedUpAWP[MAXPLAYERS + 1], g_bIsAWPDonor[MAXPLAYERS + 1], g_bBuyDelayed[MAXPLAYERS + 1], g_bAWPDropQueued[MAXPLAYERS + 1], g_bDonationInProgress[MAXPLAYERS + 1], g_bShouldPickupDroppedGun[MAXPLAYERS + 1];
-int g_iSavedAWPFor[MAXPLAYERS + 1];
+bool g_bHasSavedAWP[MAXPLAYERS + 1], g_bHasPickedUpAWP[MAXPLAYERS + 1], g_bIsAWPDonor[MAXPLAYERS + 1], g_bBuyDelayed[MAXPLAYERS + 1], g_bAWPDropQueued[MAXPLAYERS + 1], g_bDonationInProgress[MAXPLAYERS + 1], g_bShouldPickupDroppedGun[MAXPLAYERS + 1], g_bAwaitingHumanAWPDrop[MAXPLAYERS + 1];
+int g_iSavedAWPFor[MAXPLAYERS + 1], g_iHumanAWPDropDonor[MAXPLAYERS + 1];
 int g_iProfileRank[MAXPLAYERS+1], g_iPlayerColor[MAXPLAYERS+1], g_iTarget[MAXPLAYERS+1], g_iPrevTarget[MAXPLAYERS+1], g_iDoingSmokeNum[MAXPLAYERS+1], g_iActiveWeapon[MAXPLAYERS+1];
 int g_iCurrentRound, g_iRoundsPlayed, g_iCTScore, g_iTScore, g_iMaxNades, g_iRoundsLostCT, g_iRoundsLostT;
 int g_iProfileRankOffset, g_iPlayerColorOffset;
@@ -768,6 +768,8 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bDropWeapon[i] = false;
 			g_bHasGottenDrop[i] = false;
 			g_bThrowGrenade[i] = false;
+			g_bAwaitingHumanAWPDrop[i] = false;
+			g_iHumanAWPDropDonor[i] = 0;
 			g_bBotHasForcedBuy[i] = false;
 			g_bIsFakeDefusing[i] = false;
 			g_bDidRun[i] = false;
@@ -844,6 +846,8 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 	    g_bBuyDelayed[i] = false;
 	    g_bAWPDropQueued[i] = false;
 	    g_bDropWeapon[i] = false;
+	    g_bAwaitingHumanAWPDrop[i] = false;
+	    g_iHumanAWPDropDonor[i] = 0;
 		if (IsValidClient(i) && IsFakeClient(i) && BotMimic_IsPlayerMimicing(i))
 			BotMimic_StopPlayerMimic(i);
 	}
@@ -897,7 +901,16 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
                 float fGunPos[3];
                 GetEntPropVector(iAWP, Prop_Send, "m_vecOrigin", fGunPos);
                 BotLookAt(i, fGunPos);
-                PrintToServer("[AWP DEBUG] AWPer %N looking at dropped AWP (ent %d)", i, iAWP);
+
+                if (g_bAwaitingHumanAWPDrop[i])
+                {
+                    BotMoveTo(i, fGunPos, FASTEST_ROUTE);
+                    PrintToServer("[AWP DEBUG] AWPer %N rushing to user-dropped AWP (ent %d)", i, iAWP);
+                }
+                else
+                {
+                    PrintToServer("[AWP DEBUG] AWPer %N looking at dropped AWP (ent %d)", i, iAWP);
+                }
             }
         }
         else if (g_bShouldPickupDroppedGun[i])
@@ -1800,6 +1813,16 @@ public Action Timer_ClearPickupFlag(Handle timer, any client)
     return Plugin_Stop;
 }
 
+public Action Timer_ClearHumanAWPWait(Handle timer, any client)
+{
+    if (IsValidClient(client))
+    {
+        g_bAwaitingHumanAWPDrop[client] = false;
+        g_iHumanAWPDropDonor[client] = 0;
+    }
+    return Plugin_Stop;
+}
+
 public MRESReturn BotCOS(DHookReturn hReturn)
 {
 	hReturn.Value = 0;
@@ -2289,6 +2312,13 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			                        CS_DropWeapon(client, iPrimary, false);
 			                    }
 			                }
+			            }
+			            else if (g_bAwaitingHumanAWPDrop[client])
+			            {
+			                g_bAwaitingHumanAWPDrop[client] = false;
+			                g_iHumanAWPDropDonor[client] = 0;
+			                g_bBuyDelayed[client] = false;
+			                PrintToServer("[AWP DEBUG] AWPer %N picked up donated user AWP, removing buy delay", client);
 			            }
 			        }
 			        else if (!IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
@@ -5296,6 +5326,46 @@ void CheckAWPDonation(int team)
 
     bool awperIsHuman = (!IsFakeClient(awper));
 
+    if (!awperIsHuman)
+    {
+        int awperPrimary = GetPlayerWeaponSlot(awper, CS_SLOT_PRIMARY);
+        bool awperHasAWP = false;
+
+        if (IsValidEntity(awperPrimary))
+            awperHasAWP = (GetEntProp(awperPrimary, Prop_Send, "m_iItemDefinitionIndex") == 9);
+
+        if (!awperHasAWP)
+        {
+            for (int i = 1; i <= MaxClients; i++)
+            {
+                if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) != team || !IsPlayerAlive(i))
+                    continue;
+
+                if (IsClientAWPer(i))
+                    continue;
+
+                int humanPrimary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
+                if (!IsValidEntity(humanPrimary))
+                    continue;
+
+                if (GetEntProp(humanPrimary, Prop_Send, "m_iItemDefinitionIndex") != 9)
+                    continue;
+
+                g_bBuyDelayed[awper] = true;
+                g_bAwaitingHumanAWPDrop[awper] = true;
+                g_iHumanAWPDropDonor[awper] = i;
+                g_bShouldPickupDroppedGun[awper] = true;
+
+                CreateTimer(0.8, Timer_BuyUtility, awper, TIMER_FLAG_NO_MAPCHANGE);
+                CreateTimer(11.0, Timer_ClearBuyDelay, awper, TIMER_FLAG_NO_MAPCHANGE);
+                CreateTimer(11.0, Timer_ClearHumanAWPWait, awper, TIMER_FLAG_NO_MAPCHANGE);
+
+                PrintToServer("[AWP_SAVER] Human %N saved AWP for bot AWPer %N, delaying AWPer buy for user drop", i, awper);
+                return;
+            }
+        }
+    }
+    
     for (int i = 1; i <= MaxClients; i++)
     {
         if (!IsValidClient(i) || !IsFakeClient(i) || !IsPlayerAlive(i))
