@@ -2070,7 +2070,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				}
 			}
 			
-			if (GetClientTeam(client) == CS_TEAM_CT && eItems_FindWeaponByDefIndex(client, 9) != -1 && 
+			if (!IsWarmupPeriod() && GetClientTeam(client) == CS_TEAM_CT && eItems_FindWeaponByDefIndex(client, 9) != -1 && 
 			    g_iHoldingAngleNum[client] == -1 && g_iDoingSmokeNum[client] == -1 && !g_bBombPlanted &&
 			    !g_bAngleBlock[client] && g_fTimeElapsed >= 9.0 && !g_bDoingPeek[client])
 			{
@@ -2103,7 +2103,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				}
 			}
 
-			if (g_iHoldingAngleNum[client] != -1 && g_fRoundTimeRemaining >= 45.0 && aliveCTs >= 3 && aliveTs >= 3)
+			if (!IsWarmupPeriod() && g_iHoldingAngleNum[client] != -1 && g_fRoundTimeRemaining >= 45.0 && aliveCTs >= 3 && aliveTs >= 3)
 			{
 			    static bool wasPlayerMimicing[MAXPLAYERS+1];
 			    bool isCurrentlyMimicing = BotMimic_IsPlayerMimicing(client);
@@ -2147,7 +2147,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				}
 			}
 
-			if (!g_bDoingPeek[client] && g_fTimeElapsed <= 5.0 && !g_bBombPlanted)
+			if (!IsWarmupPeriod() && !g_bDoingPeek[client] && g_fTimeElapsed <= 5.0 && !g_bBombPlanted)
 			{
 			    if (!g_bPeekRolled[client])
 			    {
@@ -2183,7 +2183,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    }
 			}
 			
-			if (g_bDoingPeek[client] && g_fTimeElapsed <= 5.0)
+			if (!IsWarmupPeriod() && g_bDoingPeek[client] && g_fTimeElapsed <= 5.0)
 			{
 			    int peek = g_iCurrentPeekNum[client];
 			    float fTargetPos[3], fLookPos[3];
@@ -4241,6 +4241,19 @@ void ForceBuyGrenades(int client)
     }
 }
 
+void TryBuyMissingUtility(int client, const char[] weaponClass, int defIndex, int cost, int &money, const char[] reason)
+{
+    if (money < cost)
+        return;
+
+    if (eItems_FindWeaponByDefIndex(client, defIndex) != -1)
+        return;
+
+    GivePlayerItem(client, weaponClass);
+    AddMoney(client, -cost, true, true, reason);
+    money -= cost;
+}
+
 void ForceBuyGrenadesDelayed(int client)
 {
     if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client))
@@ -4257,48 +4270,26 @@ void ForceBuyGrenadesDelayed(int client)
     const int costSmoke = 300;
     const int costHE    = 300;
     int costFire        = isCT ? 600 : 400;
-    char fireGrenade[32];
+    
+    int moneyBefore = money;
+    // Def indexes: flash=43, he=44, smoke=45, molotov=46, inc=48
+    TryBuyMissingUtility(client, "weapon_flashbang", 43, costFlash, money, "grenade_flash");
+    TryBuyMissingUtility(client, "weapon_smokegrenade", 45, costSmoke, money, "grenade_smoke");
+    TryBuyMissingUtility(client, "weapon_hegrenade", 44, costHE, money, "grenade_he");
+
     if (isCT)
-        strcopy(fireGrenade, sizeof(fireGrenade), "weapon_incgrenade");
+        TryBuyMissingUtility(client, "weapon_incgrenade", 48, costFire, money, "grenade_fire");
     else
-        strcopy(fireGrenade, sizeof(fireGrenade), "weapon_molotov");
+        TryBuyMissingUtility(client, "weapon_molotov", 46, costFire, money, "grenade_fire");
 
-    if (money >= (costFlash + costSmoke + costHE + costFire))
+    if (moneyBefore == money)
     {
-        GivePlayerItem(client, "weapon_flashbang");
-        GivePlayerItem(client, "weapon_smokegrenade");
-        GivePlayerItem(client, "weapon_hegrenade");
-        GivePlayerItem(client, fireGrenade);
-        AddMoney(client, -(costFlash + costSmoke + costHE + costFire), true, true, "grenade_full");
-        PrintToServer("[AWP DEBUG] %N bought full grenade set (%s).", client, isCT ? "CT" : "T");
-        return;
+        PrintToServer("[AWP DEBUG] %N skipped utility buy (already has utility or insufficient money).", client);
     }
-    if (money >= (costFlash + costSmoke + costHE))
+    else
     {
-        GivePlayerItem(client, "weapon_flashbang");
-        GivePlayerItem(client, "weapon_smokegrenade");
-        GivePlayerItem(client, "weapon_hegrenade");
-        AddMoney(client, -(costFlash + costSmoke + costHE), true, true, "grenade_triple");
-        PrintToServer("[AWP DEBUG] %N bought 3-grenade set.", client);
-        return;
+        PrintToServer("[AWP DEBUG] %N bought missing utility only (spent: %d, left: %d).", client, moneyBefore - money, money);
     }
-    if (money >= (costFlash + costSmoke))
-    {
-        GivePlayerItem(client, "weapon_flashbang");
-        GivePlayerItem(client, "weapon_smokegrenade");
-        AddMoney(client, -(costFlash + costSmoke), true, true, "grenade_duo");
-        PrintToServer("[AWP DEBUG] %N bought 2-grenade set.", client);
-        return;
-    }
-    if (money >= costFlash)
-    {
-        GivePlayerItem(client, "weapon_flashbang");
-        AddMoney(client, -costFlash, true, true, "grenade_flash");
-        PrintToServer("[AWP DEBUG] %N bought flash only.", client);
-        return;
-    }
-
-    PrintToServer("[AWP DEBUG] %N could not afford any grenades.", client);
 }
 
 Action TryReplaceBoughtWeapon(int client, const char[] szWeapon, int iAccount)
