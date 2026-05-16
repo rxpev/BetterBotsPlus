@@ -1365,6 +1365,9 @@ public Action CS_OnBuyCommand(int client, const char[] szWeapon)
     if (IsInArray(szWeapon, szEquipment, sizeof szEquipment))
         return Plugin_Continue;
 
+    if (g_bIsAWPer[client] && IsAWPerWaitingForSavedAWP(client) && IsInArray(szWeapon, szPrimaryWeapons, sizeof szPrimaryWeapons))
+        return Plugin_Handled;
+    
     if (PlayerHasPrimary(client) && IsInArray(szWeapon, szPrimaryWeapons, sizeof szPrimaryWeapons))
         return Plugin_Handled;
 
@@ -4583,6 +4586,12 @@ bool TryUpgradeWeapon(int client)
         GetEntityClassname(iPrimary, szCurrentWeapon, sizeof(szCurrentWeapon));
     }
 
+    if (g_bIsAWPer[client] && IsAWPerWaitingForSavedAWP(client))
+    {
+        PrintToServer("[AWP_SAVER] AWPer %N skipped upgrade while waiting for saved AWP", client);
+        return false;
+    }
+
     if (g_bIsAWPer[client] && iAccount >= 10000 && strcmp(szCurrentWeapon, "weapon_awp") != 0)
 	{
 	    char szNewWeapon[64] = "weapon_awp";
@@ -5576,6 +5585,37 @@ stock bool ShouldForce(int iTeam)
     if (iMaxRounds > 0 && g_iCurrentRound == iTotalRounds - 1)
     {
         return true;
+    }
+
+    return false;
+}
+
+stock bool IsAWPerWaitingForSavedAWP(int client)
+{
+    if (!g_bIsAWPer[client])
+        return false;
+
+    if (g_bBuyDelayed[client] || g_bDonationInProgress[client] || g_bAwaitingHumanAWPDrop[client] || g_bHasSavedAWP[client])
+        return true;
+
+    int team = GetClientTeam(client);
+    if (team != CS_TEAM_T && team != CS_TEAM_CT)
+        return false;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || GetClientTeam(i) != team || IsClientAWPer(i))
+            continue;
+
+        int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
+        if (!IsValidEntity(primary) || GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") != 9)
+            continue;
+
+        if (IsFakeClient(i) && g_bHasPickedUpAWP[i] && g_iSavedAWPFor[i] == client)
+            return true;
+
+        if (!IsFakeClient(i))
+            return true;
     }
 
     return false;
