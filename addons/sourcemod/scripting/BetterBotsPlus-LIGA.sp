@@ -2723,6 +2723,24 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
     int victim = GetClientOfUserId(event.GetInt("userid"));
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 
+    if (IsValidClient(victim))
+    {
+        if (g_bHasPickedUpAWP[victim])
+        {
+            int awper = g_iSavedAWPFor[victim];
+            if (awper > 0 && awper <= MaxClients)
+                ClearSavedAWPForAWPer(awper);
+            else
+                ClearSavedAWPCarrier(victim);
+        }
+
+        if (g_bIsAWPer[victim])
+        {
+            g_bAwaitingHumanAWPDrop[victim] = false;
+            g_iHumanAWPDropDonor[victim] = 0;
+        }
+    }
+
     if (IsValidClient(victim) && IsFakeClient(victim) && !IsPlayerAlive(victim) && g_fBombsiteDisableTime > 0.0 && GetGameTime() - g_fBombsiteDisableTime <= 5.0 && GetClientTeam(victim) == CS_TEAM_T)
     {
         PrintToServer("[FAKEPLANT] Bot %d died, resetting Bombsite Timer", victim);
@@ -2777,6 +2795,34 @@ public void BotMimic_OnPlayerStopsMimicing(int client, char[] szName, char[] szC
 
 public void OnClientDisconnect(int client)
 {
+    if (client > 0 && client <= MaxClients)
+    {
+        if (g_bHasPickedUpAWP[client])
+        {
+            int awper = g_iSavedAWPFor[client];
+            if (awper > 0 && awper <= MaxClients)
+                ClearSavedAWPForAWPer(awper);
+            else
+                ClearSavedAWPCarrier(client);
+        }
+
+        ClearSavedAWPForAWPer(client);
+        g_bAwaitingHumanAWPDrop[client] = false;
+        g_iHumanAWPDropDonor[client] = 0;
+        g_bBuyDelayed[client] = false;
+        g_bDonationInProgress[client] = false;
+
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (g_iHumanAWPDropDonor[i] == client)
+            {
+                g_bAwaitingHumanAWPDrop[i] = false;
+                g_iHumanAWPDropDonor[i] = 0;
+                g_bBuyDelayed[i] = false;
+            }
+        }
+    }
+
 	if (IsValidClient(client) && IsFakeClient(client))
 		g_iProfileRank[client] = 0;
 }
@@ -5590,35 +5636,78 @@ stock bool ShouldForce(int iTeam)
     return false;
 }
 
+stock bool ClientHasPrimaryAWP(int client)
+{
+    if (!IsValidClient(client) || !IsPlayerAlive(client))
+        return false;
+
+    int primary = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
+    return (IsValidEntity(primary) && GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") == 9);
+}
+
+stock void ClearSavedAWPCarrier(int client)
+{
+    if (client <= 0 || client > MaxClients)
+        return;
+
+    g_bHasPickedUpAWP[client] = false;
+    g_iSavedAWPFor[client] = 0;
+    g_bIsAWPDonor[client] = false;
+}
+
+stock void ClearSavedAWPForAWPer(int awper)
+{
+    if (awper <= 0 || awper > MaxClients)
+        return;
+
+    g_bHasSavedAWP[awper] = false;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (g_iSavedAWPFor[i] == awper)
+            ClearSavedAWPCarrier(i);
+    }
+}
+
+stock bool HasValidSavedAWPForAWPer(int awper)
+{
+    if (!g_bHasSavedAWP[awper])
+        return false;
+
+    int team = GetClientTeam(awper);
+    if (team != CS_TEAM_T && team != CS_TEAM_CT)
+    {
+        ClearSavedAWPForAWPer(awper);
+        return false;
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!g_bHasPickedUpAWP[i] || g_iSavedAWPFor[i] != awper)
+            continue;
+
+        if (!IsClientInGame(i) || !IsFakeClient(i) || GetClientTeam(i) != team || IsClientAWPer(i) || !ClientHasPrimaryAWP(i))
+        {
+            ClearSavedAWPCarrier(i);
+            continue;
+        }
+
+        return true;
+    }
+
+    g_bHasSavedAWP[awper] = false;
+    return false;
+}
+
 stock bool IsAWPerWaitingForSavedAWP(int client)
 {
     if (!g_bIsAWPer[client])
         return false;
 
-    if (g_bBuyDelayed[client] || g_bDonationInProgress[client] || g_bAwaitingHumanAWPDrop[client] || g_bHasSavedAWP[client])
+    if (g_bBuyDelayed[client] || g_bDonationInProgress[client] || g_bAwaitingHumanAWPDrop[client])
         return true;
 
-    int team = GetClientTeam(client);
-    if (team != CS_TEAM_T && team != CS_TEAM_CT)
-        return false;
-
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if (!IsClientInGame(i) || GetClientTeam(i) != team || IsClientAWPer(i))
-            continue;
-
-        int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
-        if (!IsValidEntity(primary) || GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") != 9)
-            continue;
-
-        if (IsFakeClient(i) && g_bHasPickedUpAWP[i] && g_iSavedAWPFor[i] == client)
-            return true;
-
-        if (!IsFakeClient(i))
-            return true;
-    }
-
-    return false;
+    return HasValidSavedAWPForAWPer(client);
 }
 
 stock bool ShouldUpgrade(int client)
