@@ -1,0 +1,129 @@
+"Strategies"
+{
+    "de_mirage"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Rush Smoker"
+            {
+                "position" "1376.000000 -304.000000 -167.968750"
+                "lookat" "872.421569 695.968750 -123.240478"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Rush Smoker.rec"
+            }
+            "B Rush Double Flasher"
+            {
+                "position" "1376.000000 -208.000000 -163.965087"
+                "lookat" "823.740661 695.968811 -127.262161"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Rush Double Flasher.rec"
+            }
+            "B Rush Flasher"
+            {
+                "position" "1376.000000 -112.000000 -163.965087"
+                "lookat" "766.429870 695.968750 -101.869544"
+                "utility1" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Rush Flasher.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "1296.000000 -64.000000 -167.968750"
+                "lookat" "812.070068 695.968750 -109.676910"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "1136.000000 32.000000 -167.968750"
+                "lookat" "1025.397827 695.618286 -115.904693"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Rush Regular 2.rec"
+            }
+        }
+        "A Execute"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Exec Jungle Smoker"
+            {
+                "position" "1376.000000 -304.000000 -167.968750"
+                "lookat" "1376.000000 -304.000000 -167.968750"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/A Exec Jungle Smoker.rec"
+            }
+            "A Exec Double Flasher"
+            {
+                "position" "1376.000000 -208.000000 -163.965087"
+                "lookat" "823.740661 695.968811 -127.262161"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/A Exec Double Flasher.rec"
+            }
+            "A Exec CT Smoker"
+            {
+                "position" "1136.000000 -64.000000 -167.968750"
+                "lookat" "1252.500000 -1269.968750 -132.119354"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/A Exec CT Smoker.rec"
+            }
+            "A Exec Stairs Smoker"
+            {
+                "position" "1136.000000 -160.000000 -167.968750"
+                "lookat" "1177.742065 -1269.968750 -150.911575"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/A Exec Stairs Smoker.rec"
+            }
+            "A Exec Regular"
+            {
+                "position" "1216.000000 -307.000000 -165.623855"
+                "lookat" "1102.241577 -1199.968750 -166.753234"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/A Exec Regular.rec"
+            }
+        }
+        "B Split"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Split Window Smoker"
+            {
+                "position" "1296.000000 32.000000 -167.968750"
+                "lookat" "1072.301757 -23.968750 23.044692"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Split Window Smoker.rec"
+            }
+            "B Split Smoker"
+            {
+                "position" "1376.000000 -304.000000 -167.968750"
+                "lookat" "1172.221923 -308.649261 127.968750"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Split Smoker.rec"
+            }
+            "B Split Molly"
+            {
+                "position" "1216.000000 -16.000000 -163.968750"
+                "lookat" "888.759521 695.968750 -90.701599"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Split Molly.rec"
+            }
+            "B Split Double Flash Smoke"
+            {
+                "position" "1376.000000 -16.000000 -167.968750"
+                "lookat" "699.851257 695.968750 -83.230041"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Split Double Flash Smoke.rec"
+            }
+            "B Split Regular"
+            {
+                "position" "1296.000000 -160.000000 -167.968750"
+                "lookat" "882.177612 695.968750 -124.451843"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_mirage/B Split Regular.rec"
+            }
+        }
+    }
+}
