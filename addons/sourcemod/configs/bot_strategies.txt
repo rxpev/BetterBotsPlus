@@ -5,7 +5,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "10.0"
             "minplayers" "5"
 
             "B Rush Smoker"
@@ -45,7 +45,7 @@
         "A Execute"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "10.0"
             "minplayers" "5"
 
             "A Exec Jungle Smoker"
@@ -86,7 +86,7 @@
         "B Split"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "10.0"
             "minplayers" "5"
 
             "B Split Window Smoker"

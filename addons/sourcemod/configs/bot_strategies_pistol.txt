@@ -1,0 +1,123 @@
+"pistolstrats"
+{
+    "de_mirage"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Rush Smoker"
+            {
+                "position" "1216.000000 -307.000000 -165.623855"
+                "lookat" "1002.303100 695.968688 -112.452583"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Rush Smoker.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "1296.000000 32.000000 -167.968750"
+                "lookat" "720.674560 695.968750 -91.351402"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "1216.000000 -211.000000 -163.968750"
+                "lookat" "981.914672 695.968811 -106.298973"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "1136.000000 -160.000000 -167.968750"
+                "lookat" "1052.563476 688.826904 -136.045837"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Rush Regular 3.rec"
+            }
+            "B Rush Regular 4"
+            {
+                "position" "1216.000000 -16.000000 -163.968750"
+                "lookat" "912.157043 695.968750 -99.641799"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Rush Regular 4.rec"
+            }
+        }
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Rush Smoker"
+            {
+                "position" "1296.000000 32.000000 -167.968750"
+                "lookat" "1066.753906 -1199.968750 -124.083045"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/A Rush Smoker.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "1296.000000 -352.000000 -167.968750"
+                "lookat" "1031.499267 -1199.968750 -176.538421"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/A Rush Regular.rec"
+            }
+            "A Rush Regular 2"
+            {
+                "position" "1216.000000 -115.000000 -163.968750"
+                "lookat" "1081.513671 -1199.968750 -148.948516"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/A Rush Regular 2.rec"
+            }
+            "A Rush Regular 3"
+            {
+                "position" "1296.000000 -256.000000 -167.968750"
+                "lookat" "1061.763793 -1199.968750 -173.924194"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/A Rush Regular 3.rec"
+            }
+            "A Rush Regular 4"
+            {
+                "position" "1136.000000 -64.000000 -167.968750"
+                "lookat" "1109.134887 -1199.968750 -135.652572"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/A Rush Regular 4.rec"
+            }
+        }
+        "B Fake"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Fake Smoker"
+            {
+                "position" "1216.000000 -307.000000 -165.623855"
+                "lookat" "1004.013244 695.968750 -107.252685"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Fake Smoker.rec"
+            }
+            "B Fake Regular Palace"
+            {
+                "position" "1376.000000 -304.000000 -167.968750"
+                "lookat" "1018.502868 -1199.968750 -134.537109"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Fake Regular Palace.rec"
+            }
+            "B Fake Regular"
+            {
+                "position" "1216.000000 -115.000000 -163.968750"
+                "lookat" "951.668212 695.968750 -112.578971"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Fake Regular.rec"
+            }
+            "B Fake Regular 2"
+            {
+                "position" "1296.000000 -160.000000 -167.968750"
+                "lookat" "1044.475341 -1199.968750 -187.743682"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Fake Regular 2.rec"
+            }
+            "B Fake Regular 3"
+            {
+                "position" "1296.000000 -352.000000 -167.968750"
+                "lookat" "1041.685913 -1199.968750 -200.444580"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_mirage/B Fake Regular 3.rec"
+            }
+        }
+    }
+}
