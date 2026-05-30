@@ -16,6 +16,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 
 #define MAX_NADES 512
 #define MAX_PEEKS 64
+#define MAX_DEFAULTS 128
 #define MAX_STRATEGIES 32
 #define MAX_STRATEGY_ROLES 8
 #define MAX_STRATEGY_UTILITIES 4
@@ -104,6 +105,19 @@ int g_iHoldingAngleNum[MAXPLAYERS + 1] = {-1, ...};
 bool g_bAngleClaimed[128];
 bool g_bAngleBlock[MAXPLAYERS + 1] = {false, ...};
 
+//BOT CT Default Variables
+float g_fDefaultPos[MAX_DEFAULTS][3];
+float g_fDefaultLook[MAX_DEFAULTS][3];
+int g_iDefaultTeam[MAX_DEFAULTS];
+int g_iDefaultSite[MAX_DEFAULTS];
+bool g_bDefaultDuck[MAX_DEFAULTS];
+char g_szDefaultName[MAX_DEFAULTS][64];
+int g_iMaxDefaults = 0;
+int g_iCTDefaultSpot[MAXPLAYERS + 1] = {-1, ...};
+bool g_bCTDefaultAtSpot[MAXPLAYERS + 1];
+bool g_bDefaultClaimed[MAX_DEFAULTS];
+bool g_bCTDefaultsAssigned = false;
+
 //BOT Peek Variables
 float g_fPeekPos[MAX_PEEKS][3];
 float g_fPeekLook[MAX_PEEKS][3];
@@ -176,6 +190,14 @@ enum RouteType
 	FASTEST_ROUTE, 
 	SAFEST_ROUTE, 
 	RETREAT_ROUTE
+}
+
+enum DefaultSite
+{
+	DEFAULT_SITE_UNKNOWN = 0,
+	DEFAULT_SITE_A,
+	DEFAULT_SITE_MID,
+	DEFAULT_SITE_B
 }
 
 enum PriorityType
@@ -307,6 +329,7 @@ public void OnMapStart()
 	ParseMapNades(g_szMap, true);
 	ParseMapNades(g_szMap, false);
 	ParsePostPlantNades(g_szMap);
+	ParseMapDefaults(g_szMap);
 	ParseMapStrategies(g_szMap);
 
 	g_bIsBombScenario = IsValidEntity(FindEntityByClassname(-1, "func_bomb_target"));
@@ -763,6 +786,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_iMaxNades = 0;
 	g_iPostPlantNadesStartIndex = 0;
 	BuildActiveNadesForRound();
+	ParseMapDefaults(g_szMap);
 	ParseMapAngles(g_szMap);
     ParseMapPeeks(g_szMap);
 
@@ -781,12 +805,18 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	{
 	    g_bAngleClaimed[i] = false;
 	}
+
+	for (int i = 0; i < g_iMaxDefaults; i++)
+	{
+	    g_bDefaultClaimed[i] = false;
+	}
 	
 	g_bFreezetimeEnd = false;
 	g_bEveryoneDead = false;
 	g_fRoundStart = GetGameTime();
 	g_bBombPlanted = false;
 	g_bBombExploded = false;
+	g_bCTDefaultsAssigned = false;
 	ClearActiveStrategy(false);
 	
 	for (int i = 1; i <= MaxClients; i++)
@@ -812,6 +842,8 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_iTarget[i] = -1;
 			g_iPrevTarget[i] = -1;
 			g_iDoingSmokeNum[i] = -1;
+			g_iCTDefaultSpot[i] = -1;
+			g_bCTDefaultAtSpot[i] = false;
 			g_fShootTimestamp[i] = 0.0;				
 			g_fThrowNadeTimestamp[i] = 0.0;				
 			g_fCrouchTimestamp[i] = 0.0;								
@@ -845,6 +877,8 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 {
     ClearActiveStrategy(false);
+    g_bCTDefaultsAssigned = false;
+    g_bFreezetimeEnd = false;
     EnableBombSites();
 	if (g_iCurrentRound == 0 || g_iCurrentRound == 12)
 	{
@@ -881,6 +915,7 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 	    g_iHumanAWPDropDonor[i] = 0;
 		if (IsValidClient(i) && IsFakeClient(i) && BotMimic_IsPlayerMimicing(i))
 			BotMimic_StopPlayerMimic(i);
+		ClearClientCTDefault(i, false);
 	}
 	
 	g_iRoundsPlayed = g_iCTScore + g_iTScore;
@@ -914,6 +949,7 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bFreezetimeEnd = true;
     g_fFreezeTimeEnd = GetGameTime();
     g_bStrategySelectionPending = HasStrategyForTeam(CS_TEAM_T);
+    AssignCTDefaults();
     CreateTimer(0.5, Timer_SelectStrategy, 0, TIMER_FLAG_NO_MAPCHANGE);
 
     for (int i = 1; i <= MaxClients; i++)
@@ -1047,6 +1083,8 @@ public void OnBombPlanted(Event event, const char[] name, bool dontBroadcast)
     {
         if (IsValidClient(i) && IsFakeClient(i) && IsPlayerAlive(i) && GetClientTeam(i) == CS_TEAM_CT)
         {
+            ClearClientCTDefault(i, false);
+
             if (g_iHoldingAngleNum[i] != -1)
             {
                 if (BotMimic_IsPlayerMimicing(i))
@@ -2041,12 +2079,15 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 		g_iActiveWeapon[client] = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 		if (!IsValidEntity(g_iActiveWeapon[client])) return Plugin_Continue;
 
+        if (g_bFreezetimeEnd && g_fTimeElapsed < 10.0)
+            iButtons &= ~IN_SPEED;
+
 		if (HandleStrategyBot(client, bIsEnemyVisible))
 		{
 			return Plugin_Continue;
 		}
 		
-		if (HandleFlashDodge(client, bIsEnemyVisible))
+        if (HandleFlashDodge(client, bIsEnemyVisible))
 		{
 			return Plugin_Continue;
 		}
@@ -2095,12 +2136,12 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    g_iDoingSmokeNum[client] = -1;
 			}
 				
-			if (IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1)
+			if (IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && CanUseGrenadeWhileMovingToCTDefault(client))
 		    {
 		        g_iDoingSmokeNum[client] = GetNearestGrenade(client);
 		    }
 
-			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1)
+			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && g_iCTDefaultSpot[client] == -1)
 			{
 				int iPostPlantNade = GetNearestPostPlantGrenade(client);
 
@@ -2113,7 +2154,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			
 			if (!IsWarmupPeriod() && GetClientTeam(client) == CS_TEAM_CT && eItems_FindWeaponByDefIndex(client, 9) != -1 && 
 			    g_iHoldingAngleNum[client] == -1 && g_iDoingSmokeNum[client] == -1 && !g_bBombPlanted &&
-			    !g_bAngleBlock[client] && g_fTimeElapsed >= 9.0 && !g_bDoingPeek[client])
+			    !g_bAngleBlock[client] && g_fTimeElapsed >= 9.0 && !g_bDoingPeek[client] && g_iCTDefaultSpot[client] == -1)
 			{
 			    int availableAngle = -1;
 				if (IsItMyChance(20.0)) 
@@ -2263,6 +2304,9 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				if (g_pCurrArea[client].Attributes & NAV_MESH_RUN)
 					iButtons &= ~IN_SPEED;
 			}
+
+            if (g_fTimeElapsed < 10.0)
+                iButtons &= ~IN_SPEED;
 			
 			if (g_iDoingSmokeNum[client] != -1 && !BotMimic_IsPlayerMimicing(client))
 			{
@@ -2312,6 +2356,11 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			{
 				BotThrowGrenade(client, g_fNadeTarget[client]);
 				g_fThrowNadeTimestamp[client] = GetGameTime();
+			}
+
+			if (HandleCTDefaultBot(client, bIsEnemyVisible, iButtons, fVel))
+			{
+				return Plugin_Changed;
 			}
 			
 			if(IsSafe(client) || g_bEveryoneDead)
@@ -2543,7 +2592,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 					        PrintToServer("[RETAKE] Bot %d discovered - now runs", client);
 					    }
 					}
-		        	if (g_fTimeLeft < 19.0)
+		        	if (g_fTimeLeft < 26.0)
 		        	{
 		        		iButtons &= ~IN_SPEED;
 				        if (!g_bDidRun[client])
@@ -2750,6 +2799,9 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				}
 			}
 			
+            if (g_fTimeElapsed < 10.0)
+                iButtons &= ~IN_SPEED;
+
 			return Plugin_Changed;
 		}
 	}
@@ -2802,6 +2854,8 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
     {
     	CreateTimer(0.1, StopPeek_Callback, victim);
     }
+
+    ClearClientCTDefault(victim, false);
     return Plugin_Continue; 
 }
 
@@ -3090,6 +3144,68 @@ void BuildActiveNadesForRound()
     }
 
     g_iMaxNades = g_iPostPlantNadesStartIndex + g_iPostPlantNades;
+}
+
+void ParseMapDefaults(const char[] szMap)
+{
+    g_iMaxDefaults = 0;
+
+    char szPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_defaults.txt");
+
+    if (!FileExists(szPath))
+    {
+        PrintToServer("[DEFAULTS] Configuration file %s not found.", szPath);
+        return;
+    }
+
+    KeyValues kv = new KeyValues("Defaults");
+
+    if (!kv.ImportFromFile(szPath))
+    {
+        delete kv;
+        PrintToServer("[DEFAULTS] Unable to parse KeyValues file %s.", szPath);
+        return;
+    }
+
+    if (!kv.JumpToKey(szMap))
+    {
+        delete kv;
+        PrintToServer("[DEFAULTS] No defaults found for %s.", szMap);
+        return;
+    }
+
+    if (!kv.GotoFirstSubKey())
+    {
+        delete kv;
+        PrintToServer("[DEFAULTS] Defaults not configured correctly for %s.", szMap);
+        return;
+    }
+
+    int i = 0;
+    do
+    {
+        if (i >= MAX_DEFAULTS)
+            break;
+
+        char szTeam[4];
+        char szSite[8];
+        kv.GetSectionName(g_szDefaultName[i], sizeof(g_szDefaultName[]));
+        kv.GetVector("position", g_fDefaultPos[i]);
+        kv.GetVector("lookat", g_fDefaultLook[i]);
+        kv.GetString("team", szTeam, sizeof(szTeam), "CT");
+        kv.GetString("site", szSite, sizeof(szSite), "");
+        g_iDefaultTeam[i] = (strcmp(szTeam, "T", false) == 0) ? CS_TEAM_T : CS_TEAM_CT;
+        g_iDefaultSite[i] = ParseDefaultSite(szSite);
+        g_bDefaultDuck[i] = view_as<bool>(kv.GetNum("duck", 0));
+        g_bDefaultClaimed[i] = false;
+        i++;
+    }
+    while (kv.GotoNextKey());
+
+    delete kv;
+    g_iMaxDefaults = i;
+    PrintToServer("[DEFAULTS] Loaded %d default spots for %s.", g_iMaxDefaults, szMap);
 }
 
 void ParseMapAngles(const char[] szMap)
@@ -3807,6 +3923,342 @@ bool HasStrategyForTeam(int team)
     }
 
     return false;
+}
+
+bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float fVel[3])
+{
+    if (!g_bFreezetimeEnd || IsWarmupPeriod() || g_bBombPlanted || g_iMaxDefaults <= 0)
+        return false;
+
+    if (!g_bCTDefaultsAssigned)
+        AssignCTDefaults();
+
+    int defaultSpot = g_iCTDefaultSpot[client];
+    if (defaultSpot < 0 || defaultSpot >= g_iMaxDefaults)
+        return false;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT)
+    {
+        ClearClientCTDefault(client, false);
+        return false;
+    }
+
+    if (bIsEnemyVisible || g_iHoldingAngleNum[client] != -1 || g_bDoingPeek[client])
+    {
+        ClearClientCTDefault(client, true);
+        return false;
+    }
+
+    float fTargetPos[3], fLookPos[3];
+    Array_Copy(g_fDefaultPos[defaultSpot], fTargetPos, 3);
+    Array_Copy(g_fDefaultLook[defaultSpot], fLookPos, 3);
+
+    float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
+    bool bAtDefaultSpot = fDistance <= 35.0;
+    bool bScriptedGrenadeInProgress = g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client);
+
+    if (bScriptedGrenadeInProgress)
+    {
+        if (!g_bCTDefaultAtSpot[client] && !bAtDefaultSpot)
+            return false;
+
+        CancelScriptedGrenadeAction(client);
+    }
+
+    if (!bAtDefaultSpot)
+    {
+        g_bCTDefaultAtSpot[client] = false;
+        BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
+        return true;
+    }
+
+    if (!g_bCTDefaultAtSpot[client])
+    {
+        BotCancelMoveTo(client);
+        BotEquipBestWeapon(client, true);
+        g_bCTDefaultAtSpot[client] = true;
+        g_bDidInitialSwitch[client] = true;
+        PrintToServer("[DEFAULTS] %N is holding %s.", client, g_szDefaultName[defaultSpot]);
+    }
+
+    BotSetLookAt(client, "CT default", fLookPos, PRIORITY_HIGH, 0.4, false, 2.0, false);
+    StopCTDefaultMovement(iButtons, fVel);
+
+    if (g_bDefaultDuck[defaultSpot])
+        iButtons |= IN_DUCK;
+
+    return true;
+}
+
+void StopCTDefaultMovement(int &iButtons, float fVel[3])
+{
+    fVel[0] = 0.0;
+    fVel[1] = 0.0;
+    fVel[2] = 0.0;
+
+    iButtons &= ~IN_FORWARD;
+    iButtons &= ~IN_BACK;
+    iButtons &= ~IN_MOVELEFT;
+    iButtons &= ~IN_MOVERIGHT;
+    iButtons &= ~IN_JUMP;
+    iButtons &= ~IN_SPEED;
+}
+
+bool CanUseGrenadeWhileMovingToCTDefault(int client)
+{
+    int defaultSpot = g_iCTDefaultSpot[client];
+    if (defaultSpot < 0 || defaultSpot >= g_iMaxDefaults)
+        return true;
+
+    if (g_bCTDefaultAtSpot[client])
+        return false;
+
+    return !IsClientAtCTDefaultSpot(client);
+}
+
+bool IsClientAtCTDefaultSpot(int client)
+{
+    int defaultSpot = g_iCTDefaultSpot[client];
+    if (defaultSpot < 0 || defaultSpot >= g_iMaxDefaults)
+        return false;
+
+    return GetVectorDistance(g_fBotOrigin[client], g_fDefaultPos[defaultSpot]) <= 35.0;
+}
+
+void AssignCTDefaults()
+{
+    g_bCTDefaultsAssigned = true;
+
+    if (g_iMaxDefaults <= 0 || g_bBombPlanted || !IsItMyChance(50.0))
+        return;
+
+    bool used[MAXPLAYERS + 1];
+    int clients[MAXPLAYERS + 1];
+    int clientCount = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        used[i] = false;
+        g_iCTDefaultSpot[i] = -1;
+        g_bCTDefaultAtSpot[i] = false;
+
+        if (CanUseBotForCTDefault(i))
+        {
+            clients[clientCount++] = i;
+        }
+    }
+
+    int aCount, midCount, bCount;
+    if (!PickDefaultSplit(clientCount, aCount, midCount, bCount))
+        return;
+
+    AssignDefaultSiteSpots(DEFAULT_SITE_A, aCount, used);
+    AssignDefaultSiteSpots(DEFAULT_SITE_MID, midCount, used);
+    AssignDefaultSiteSpots(DEFAULT_SITE_B, bCount, used);
+}
+
+void AssignDefaultSiteSpots(DefaultSite site, int count, bool used[MAXPLAYERS + 1])
+{
+    for (int assigned = 0; assigned < count; assigned++)
+    {
+        int defaultSpot = PickRandomDefaultSpotForSite(site);
+        if (defaultSpot == -1)
+            return;
+
+        int client = PickRandomBotForDefault(used);
+        if (client == 0)
+            return;
+
+        used[client] = true;
+        g_bDefaultClaimed[defaultSpot] = true;
+        g_iCTDefaultSpot[client] = defaultSpot;
+        g_bCTDefaultAtSpot[client] = false;
+
+        PrintToServer("[DEFAULTS] Assigned %N to %s.", client, g_szDefaultName[defaultSpot]);
+    }
+}
+
+int PickRandomDefaultSpotForSite(DefaultSite site)
+{
+    int spots[MAX_DEFAULTS];
+    int spotCount = 0;
+
+    for (int i = 0; i < g_iMaxDefaults; i++)
+    {
+        if (g_bDefaultClaimed[i])
+            continue;
+
+        if (g_iDefaultTeam[i] != CS_TEAM_CT || g_iDefaultSite[i] != site)
+            continue;
+
+        spots[spotCount++] = i;
+    }
+
+    if (spotCount == 0)
+        return -1;
+
+    return spots[GetRandomInt(0, spotCount - 1)];
+}
+
+int PickRandomBotForDefault(bool used[MAXPLAYERS + 1])
+{
+    int clients[MAXPLAYERS + 1];
+    int clientCount = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (used[i])
+            continue;
+
+        if (!CanUseBotForCTDefault(i))
+            continue;
+
+        clients[clientCount++] = i;
+    }
+
+    if (clientCount == 0)
+        return 0;
+
+    return clients[GetRandomInt(0, clientCount - 1)];
+}
+
+bool CanUseBotForCTDefault(int client)
+{
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT)
+        return false;
+
+    if (g_iDoingSmokeNum[client] != -1 || g_iHoldingAngleNum[client] != -1 || g_bDoingPeek[client] || BotMimic_IsPlayerMimicing(client))
+        return false;
+
+    if (eItems_FindWeaponByDefIndex(client, 9) != -1)
+        return false;
+
+    return true;
+}
+
+bool PickDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount)
+{
+    int planA[7] = {2, 3, 2, 1, 1, 2, 4};
+    int planMid[7] = {1, 0, 2, 2, 1, 0, 0};
+    int planB[7] = {2, 2, 1, 2, 2, 3, 1};
+    int weights[7] = {35, 25, 15, 10, 7, 5, 3};
+    int candidates[7];
+    int candidateWeights[7];
+    int candidateCount = 0;
+    int totalWeight = 0;
+
+    for (int i = 0; i < 7; i++)
+    {
+        int total = planA[i] + planMid[i] + planB[i];
+        if (total > eligibleCount)
+            continue;
+
+        if (!HasEnoughDefaultsForSite(DEFAULT_SITE_A, planA[i]) ||
+            !HasEnoughDefaultsForSite(DEFAULT_SITE_MID, planMid[i]) ||
+            !HasEnoughDefaultsForSite(DEFAULT_SITE_B, planB[i]))
+        {
+            continue;
+        }
+
+        candidates[candidateCount] = i;
+        candidateWeights[candidateCount] = weights[i];
+        totalWeight += weights[i];
+        candidateCount++;
+    }
+
+    if (candidateCount == 0)
+        return PickFallbackDefaultSplit(eligibleCount, aCount, midCount, bCount);
+
+    int roll = GetRandomInt(1, totalWeight);
+    int cursor = 0;
+
+    for (int i = 0; i < candidateCount; i++)
+    {
+        cursor += candidateWeights[i];
+        if (roll <= cursor)
+        {
+            int plan = candidates[i];
+            aCount = planA[plan];
+            midCount = planMid[plan];
+            bCount = planB[plan];
+            PrintToServer("[DEFAULTS] Picked split: %d A, %d Mid, %d B.", aCount, midCount, bCount);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool PickFallbackDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount)
+{
+    aCount = 0;
+    midCount = 0;
+    bCount = 0;
+
+    int target = eligibleCount;
+    if (target > 5)
+        target = 5;
+
+    while (target > 0)
+    {
+        if (HasEnoughDefaultsForSite(DEFAULT_SITE_A, aCount + 1) && aCount <= bCount)
+            aCount++;
+        else if (HasEnoughDefaultsForSite(DEFAULT_SITE_B, bCount + 1))
+            bCount++;
+        else if (HasEnoughDefaultsForSite(DEFAULT_SITE_MID, midCount + 1))
+            midCount++;
+        else
+            break;
+
+        target--;
+    }
+
+    return (aCount + midCount + bCount) > 0;
+}
+
+bool HasEnoughDefaultsForSite(DefaultSite site, int needed)
+{
+    if (needed <= 0)
+        return true;
+
+    int count = 0;
+    for (int i = 0; i < g_iMaxDefaults; i++)
+    {
+        if (g_iDefaultTeam[i] == CS_TEAM_CT && g_iDefaultSite[i] == site)
+            count++;
+    }
+
+    return count >= needed;
+}
+
+DefaultSite ParseDefaultSite(const char[] szSite)
+{
+    if (strcmp(szSite, "A", false) == 0)
+        return DEFAULT_SITE_A;
+
+    if (strcmp(szSite, "Mid", false) == 0 || strcmp(szSite, "Middle", false) == 0)
+        return DEFAULT_SITE_MID;
+
+    if (strcmp(szSite, "B", false) == 0)
+        return DEFAULT_SITE_B;
+
+    return DEFAULT_SITE_UNKNOWN;
+}
+
+void ClearClientCTDefault(int client, bool bCancelMove)
+{
+    int defaultSpot = g_iCTDefaultSpot[client];
+    if (defaultSpot >= 0 && defaultSpot < g_iMaxDefaults)
+        g_bDefaultClaimed[defaultSpot] = false;
+
+    g_iCTDefaultSpot[client] = -1;
+    g_bCTDefaultAtSpot[client] = false;
+
+    if (bCancelMove && IsValidClient(client) && IsFakeClient(client) && IsPlayerAlive(client))
+    {
+        BotCancelMoveTo(client);
+        BotEquipBestWeapon(client, true);
+    }
 }
 
 void LoadAWPers()
@@ -5523,7 +5975,17 @@ public void OnBotTakeDamagePost(int victim, int attacker, int inflictor, float d
 	if (!IsValidClient(victim) || !IsFakeClient(victim) || !IsPlayerAlive(victim))
 		return;
 
-	if (damage <= 0.0 || !BotMimic_IsPlayerMimicing(victim))
+	if (damage <= 0.0)
+		return;
+
+	if (g_iCTDefaultSpot[victim] != -1)
+	{
+		ClearClientCTDefault(victim, true);
+		SnapBotToNearestEnemy(victim);
+		PrintToServer("[DEFAULTS] Bot %d took damage (%.1f) - leaving CT default", victim, damage);
+	}
+
+	if (!BotMimic_IsPlayerMimicing(victim))
 		return;
 
 	if (g_iDoingSmokeNum[victim] != -1)
