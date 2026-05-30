@@ -787,6 +787,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_iPostPlantNadesStartIndex = 0;
 	BuildActiveNadesForRound();
 	ParseMapDefaults(g_szMap);
+	ParseMapStrategies(g_szMap);
 	ParseMapAngles(g_szMap);
     ParseMapPeeks(g_szMap);
 
@@ -3096,7 +3097,7 @@ void ParsePostPlantNades(const char[] szMap)
 
 void BuildActiveNadesForRound()
 {
-    bool bPistolRound = (g_iCurrentRound == 0 || g_iCurrentRound == 12);
+    bool bPistolRound = IsPistolStrategyRound();
     int iMainNades = bPistolRound ? g_iPistolNades : g_iNormalNades;
 
     for (int i = 0; i < iMainNades; i++)
@@ -3144,6 +3145,11 @@ void BuildActiveNadesForRound()
     }
 
     g_iMaxNades = g_iPostPlantNadesStartIndex + g_iPostPlantNades;
+}
+
+bool IsPistolStrategyRound()
+{
+    return g_iCurrentRound == 0 || g_iCurrentRound == 12;
 }
 
 void ParseMapDefaults(const char[] szMap)
@@ -3317,7 +3323,18 @@ void ParseMapStrategies(const char[] szMap)
     g_iMaxStrategies = 0;
 
     char szPath[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_strategies.txt");
+    char szRoot[32];
+
+    if (IsPistolStrategyRound())
+    {
+        BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_strategies_pistol.txt");
+        strcopy(szRoot, sizeof(szRoot), "pistolstrats");
+    }
+    else
+    {
+        BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_strategies.txt");
+        strcopy(szRoot, sizeof(szRoot), "Strategies");
+    }
 
     if (!FileExists(szPath))
     {
@@ -3325,7 +3342,7 @@ void ParseMapStrategies(const char[] szMap)
         return;
     }
 
-    KeyValues kv = new KeyValues("Strategies");
+    KeyValues kv = new KeyValues(szRoot);
 
     if (!kv.ImportFromFile(szPath))
     {
@@ -3385,7 +3402,10 @@ void ParseMapStrategies(const char[] szMap)
             kv.GoBack();
         }
 
-        PrintToServer("[STRATS] Loaded strategy %s with %d roles.", g_szStrategyName[strat], g_iStrategyRoleCount[strat]);
+        PrintToServer("[STRATS] Loaded %s strategy %s with %d roles.",
+            IsPistolStrategyRound() ? "pistol" : "normal",
+            g_szStrategyName[strat],
+            g_iStrategyRoleCount[strat]);
         g_iMaxStrategies++;
     }
     while (kv.GotoNextKey());
@@ -3530,6 +3550,12 @@ void TrySelectStrategy()
         if (!IsItMyChance(g_fStrategyChance[strat]))
             continue;
 
+        if (!CanAssignRequiredStrategyUtility(strat))
+        {
+            PrintToServer("[STRATS] Skipping %s: required utility is not available.", g_szStrategyName[strat]);
+            continue;
+        }
+
         if (!CanTryStrategyWithAvailablePlayers(strat))
         {
             PrintToServer("[STRATS] Skipping %s: not enough available T players.", g_szStrategyName[strat]);
@@ -3586,31 +3612,64 @@ bool TryAssignStrategy(int strat)
             continue;
         }
 
-        int selected = FindBotForStrategyRole(strat, role, used);
-        if (selected == 0)
+        if (g_iStrategyRoleUtilityCount[strat][role] <= 0)
+            continue;
+
+        if (!TryAssignStrategyRole(strat, role, used))
         {
-            PrintToServer("[STRATS] Could not assign role %s for %s.", g_szStrategyRoleName[strat][role], g_szStrategyName[strat]);
             ClearActiveStrategy(false);
             return false;
         }
+    }
 
-        used[selected] = true;
-        g_iStrategyRoleClient[role] = selected;
-        g_iClientStrategyRole[selected] = role;
-        g_bStrategyControlled[selected] = true;
+    for (int role = 0; role < g_iStrategyRoleCount[strat]; role++)
+    {
+        if (role == skippedRole || g_iStrategyRoleUtilityCount[strat][role] > 0)
+            continue;
 
-        g_iDoingSmokeNum[selected] = -1;
-        g_iHoldingAngleNum[selected] = -1;
-        g_bDoingPeek[selected] = false;
-        g_iCurrentPeekNum[selected] = -1;
-        g_bThrowGrenade[selected] = false;
-        g_bAngleBlock[selected] = true;
-
-        if (BotMimic_IsPlayerMimicing(selected))
+        if (!TryAssignStrategyRole(strat, role, used))
         {
-            BotMimic_StopPlayerMimic(selected);
+            ClearActiveStrategy(false);
+            return false;
         }
     }
+
+    return true;
+}
+
+bool TryAssignStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
+{
+    int selected = FindBotForStrategyRole(strat, role, used);
+    if (selected == 0)
+    {
+        PrintToServer("[STRATS] Could not assign role %s for %s.", g_szStrategyRoleName[strat][role], g_szStrategyName[strat]);
+        return false;
+    }
+
+    used[selected] = true;
+    g_iStrategyRoleClient[role] = selected;
+    g_iClientStrategyRole[selected] = role;
+    g_bStrategyControlled[selected] = true;
+
+    g_iDoingSmokeNum[selected] = -1;
+    g_iHoldingAngleNum[selected] = -1;
+    g_bDoingPeek[selected] = false;
+    g_iCurrentPeekNum[selected] = -1;
+    g_bThrowGrenade[selected] = false;
+    g_bAngleBlock[selected] = true;
+
+    if (BotMimic_IsPlayerMimicing(selected))
+    {
+        BotMimic_StopPlayerMimic(selected);
+    }
+
+    PrintToServer("[STRATS] Assigned %N to %s role %s at %.1f %.1f %.1f.",
+        selected,
+        g_szStrategyName[strat],
+        g_szStrategyRoleName[strat][role],
+        g_fStrategyRolePos[strat][role][0],
+        g_fStrategyRolePos[strat][role][1],
+        g_fStrategyRolePos[strat][role][2]);
 
     return true;
 }
@@ -3649,6 +3708,65 @@ int FindBotForStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
     }
 
     return 0;
+}
+
+bool CanAssignRequiredStrategyUtility(int strat)
+{
+    bool used[MAXPLAYERS + 1];
+
+    for (int i = 1; i <= MaxClients; i++)
+        used[i] = false;
+
+    for (int role = 0; role < g_iStrategyRoleCount[strat]; role++)
+    {
+        if (g_iStrategyRoleUtilityCount[strat][role] <= 0)
+            continue;
+
+        int selected = FindBotForStrategyRole(strat, role, used);
+        if (selected == 0)
+            return false;
+
+        used[selected] = true;
+    }
+
+    return true;
+}
+
+bool DoesAssignedStrategyStillHaveUtility(int strat)
+{
+    for (int role = 0; role < g_iStrategyRoleCount[strat]; role++)
+    {
+        if (g_bStrategyRoleSkipped[role])
+            continue;
+
+        int client = g_iStrategyRoleClient[role];
+        if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client))
+            return false;
+
+        if (!DoesClientMeetStrategyUtilityRequirements(client, strat, role))
+            return false;
+    }
+
+    return true;
+}
+
+bool DoesClientMeetStrategyUtilityRequirements(int client, int strat, int role)
+{
+    for (int utility = 0; utility < g_iStrategyRoleUtilityCount[strat][role]; utility++)
+    {
+        int defIndex = g_iStrategyRoleUtilityDefIndex[strat][role][utility];
+        int amount = g_iStrategyRoleUtilityAmount[strat][role][utility];
+        int heldCount = CountPlayerWeaponsByDefIndex(client, defIndex);
+
+        if (heldCount < amount)
+        {
+            PrintToServer("[STRATS] %N missing utility for role %s: defindex %d need %d have %d",
+                client, g_szStrategyRoleName[strat][role], defIndex, amount, heldCount);
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool HandleStrategyBot(int client, bool bIsEnemyVisible)
@@ -3690,7 +3808,18 @@ bool HandleStrategyBot(int client, bool bIsEnemyVisible)
 
     if ((GetGameTime() - g_fStrategyAssignTime) > g_fStrategyTimeout[strat])
     {
+        PrintStrategySetupBlocker(strat);
         PrintToServer("[STRATS] Aborting %s: setup timed out.", g_szStrategyName[strat]);
+        ClearActiveStrategy(false);
+        return false;
+    }
+
+    if (!DoesClientMeetStrategyUtilityRequirements(client, strat, role))
+    {
+        PrintToServer("[STRATS] Aborting %s: %N no longer has required utility for %s.",
+            g_szStrategyName[strat],
+            client,
+            g_szStrategyRoleName[strat][role]);
         ClearActiveStrategy(false);
         return false;
     }
@@ -3740,6 +3869,13 @@ void TryStartActiveStrategy()
             return;
     }
 
+    if (!DoesAssignedStrategyStillHaveUtility(strat))
+    {
+        PrintToServer("[STRATS] Aborting %s: assigned bots no longer have required utility.", g_szStrategyName[strat]);
+        ClearActiveStrategy(false);
+        return;
+    }
+
     for (int role = 0; role < g_iStrategyRoleCount[strat]; role++)
     {
         if (g_bStrategyRoleSkipped[role])
@@ -3758,6 +3894,51 @@ void TryStartActiveStrategy()
 
     g_bStrategyStarted = true;
     PrintToServer("[STRATS] Started strategy %s with %d roles.", g_szStrategyName[strat], CountAssignedStrategyRoles(strat));
+}
+
+void PrintStrategySetupBlocker(int strat)
+{
+    for (int role = 0; role < g_iStrategyRoleCount[strat]; role++)
+    {
+        if (g_bStrategyRoleSkipped[role])
+            continue;
+
+        int client = g_iStrategyRoleClient[role];
+        if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client))
+        {
+            PrintToServer("[STRATS] Setup blocker for %s: role %s has no valid alive bot.",
+                g_szStrategyName[strat],
+                g_szStrategyRoleName[strat][role]);
+            return;
+        }
+
+        float fVelocity[3];
+        GetEntPropVector(client, Prop_Data, "m_vecVelocity", fVelocity);
+
+        float fDistance = GetVectorDistance(g_fBotOrigin[client], g_fStrategyRolePos[strat][role]);
+        float fSpeed = GetVectorLength(fVelocity);
+        bool bOnGround = !!(GetEntityFlags(client) & FL_ONGROUND);
+
+        if (fDistance > 45.0 || fSpeed > 20.0 || !bOnGround)
+        {
+            PrintToServer("[STRATS] Setup blocker for %s: %N role %s origin %.1f %.1f %.1f target %.1f %.1f %.1f dist %.1f speed %.1f ground %d.",
+                g_szStrategyName[strat],
+                client,
+                g_szStrategyRoleName[strat][role],
+                g_fBotOrigin[client][0],
+                g_fBotOrigin[client][1],
+                g_fBotOrigin[client][2],
+                g_fStrategyRolePos[strat][role][0],
+                g_fStrategyRolePos[strat][role][1],
+                g_fStrategyRolePos[strat][role][2],
+                fDistance,
+                fSpeed,
+                bOnGround);
+            return;
+        }
+    }
+
+    PrintToServer("[STRATS] Setup blocker for %s: no blocked role found.", g_szStrategyName[strat]);
 }
 
 void CheckActiveStrategyFinished()
@@ -3785,14 +3966,28 @@ int CountPlayerWeaponsByDefIndex(int client, int defIndex)
 {
     int count = 0;
     int offset = FindDataMapInfo(client, "m_hMyWeapons");
+    char szExpectedClass[32];
+    bool bRequireClass = GetStrategyUtilityWeaponClass(defIndex, szExpectedClass, sizeof(szExpectedClass));
 
     if (offset == -1)
-        return IsValidEntity(eItems_FindWeaponByDefIndex(client, defIndex)) ? 1 : 0;
+    {
+        int weapon = eItems_FindWeaponByDefIndex(client, defIndex);
+        if (!IsValidEntity(weapon))
+            return 0;
+
+        if (bRequireClass && !IsEntityClassname(weapon, szExpectedClass))
+            return 0;
+
+        return 1;
+    }
 
     for (int i = 0; i < 64; i++)
     {
         int weapon = GetEntDataEnt2(client, offset + (i * 4));
         if (!IsValidEntity(weapon))
+            continue;
+
+        if (bRequireClass && !IsEntityClassname(weapon, szExpectedClass))
             continue;
 
         if (GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex") == defIndex)
@@ -3824,6 +4019,47 @@ int CountPlayerWeaponsByDefIndex(int client, int defIndex)
     }
 
     return count;
+}
+
+bool GetStrategyUtilityWeaponClass(int defIndex, char[] szClass, int iClassLength)
+{
+    switch (defIndex)
+    {
+        case 43:
+        {
+            strcopy(szClass, iClassLength, "weapon_flashbang");
+            return true;
+        }
+        case 44:
+        {
+            strcopy(szClass, iClassLength, "weapon_hegrenade");
+            return true;
+        }
+        case 45:
+        {
+            strcopy(szClass, iClassLength, "weapon_smokegrenade");
+            return true;
+        }
+        case 46:
+        {
+            strcopy(szClass, iClassLength, "weapon_molotov");
+            return true;
+        }
+        case 48:
+        {
+            strcopy(szClass, iClassLength, "weapon_incgrenade");
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool IsEntityClassname(int entity, const char[] szExpectedClass)
+{
+    char szClassname[64];
+    GetEntityClassname(entity, szClassname, sizeof(szClassname));
+    return strcmp(szClassname, szExpectedClass, false) == 0;
 }
 
 int GetAliveFakeTeamCount(int team)
