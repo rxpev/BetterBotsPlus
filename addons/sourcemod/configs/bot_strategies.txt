@@ -1,5 +1,135 @@
 "Strategies"
 {
+    "de_ancient"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "B Rush Deep Smoker"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-420.314453 -2112.031250 -95.990554"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Rush Deep Smoker.rec"
+            }
+            "B Rush Cave Smoker"
+            {
+                "position" "-560.000000 -2208.000000 -163.255752"
+                "lookat" "-418.774963 -2112.031250 -96.875686"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Rush Cave Smoker.rec"
+            }
+            "B Rush Molly"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-134.832489 -1777.236328 -108.390213"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Rush Molly.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-432.000000 -2208.000000 -163.255752"
+                "lookat" "-110.459564 -1778.619384 -104.240455"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-368.000000 -2224.000000 -163.255752"
+                "lookat" "-137.119094 -1779.858154 -100.524284"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Rush Regular 2.rec"
+            }
+        }
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "A Rush CT Smoker"
+            {
+                "position" "-432.000000 -2208.000000 -163.255752"
+                "lookat" "-610.163024 -2112.031250 -97.204322"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/A Rush CT Smoker.rec"
+            }
+            "A Rush Donut Smoker"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-751.968750 -2005.707275 -95.272071"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/A Rush Donut Smoker.rec"
+            }
+            "A Rush Flasher"
+            {
+                "position" "-576.000000 -2272.000000 -162.255752"
+                "lookat" "-751.968750 -1882.595825 -61.708835"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/A Rush Flasher.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "-560.000000 -2208.000000 -163.255752"
+                "lookat" "-751.968750 -1906.145874 -78.078102"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/A Rush Regular.rec"
+            }
+            "A Rush Regular 2"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-751.968750 -1873.585083 -69.296661"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/A Rush Regular 2.rec"
+            }
+        }
+        "B Execute"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "B Exec Cave Smoker"
+            {
+                "position" "-576.000000 -2272.000000 -162.255752"
+                "lookat" "-200.031280 -2006.704589 -104.086624"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Cave Smoker.rec"
+            }
+            "B Exec Long Smoker"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-139.248962 -1781.153808 -96.637718"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Long Smoker.rec"
+            }
+            "B Exec Window Smoker"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-656.201965 -1555.725830 -57.964038"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Window Smoker.rec"
+            }
+            "B Exec Regular"
+            {
+                "position" "-368.000000 -2224.000000 -163.255752"
+                "lookat" "-136.715545 -1779.999023 -100.101562"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Regular.rec"
+            }
+            "B Exec Regular 2"
+            {
+                "position" "-432.000000 -2208.000000 -163.255752"
+                "lookat" "-119.737762 -1781.323120 -96.129241"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Regular 2.rec"
+            }
+        }
+    }
     "de_mirage"
     {
         "B Rush"
