@@ -1,5 +1,127 @@
 "pistolstrats"
-{
+{   
+    "de_ancient"
+    {
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Rush Donut Smoker"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-412.316101 -2112.031250 -93.846984"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/A Rush Donut Smoker.rec"
+            }
+            "A Rush CT Smoker"
+            {
+                "position" "-368.000000 -2224.000000 -163.255752"
+                "lookat" "-614.077148 -2112.031250 -91.717315"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/A Rush CT Smoker.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-822.916992 -1539.951416 -101.010635"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/A Rush Regular.rec"
+            }
+            "A Rush Regular 2"
+            {
+                "position" "-560.000000 -2208.000000 -163.255752"
+                "lookat" "-751.968750 -1882.978759 -63.756874"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/A Rush Regular 2.rec"
+            }
+            "A Rush Regular 3"
+            {
+                "position" "-576.000000 -2272.000000 -162.255752"
+                "lookat" "-751.968750 -1875.023803 -65.916839"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/A Rush Regular 3.rec"
+            }
+        }
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+            
+            "B Rush Smoker"
+            {
+                "position" "-576.000000 -2272.000000 -162.255752"
+                "lookat" "-417.292388 -2112.031250 -100.825637"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Rush Smoker.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-368.000000 -2224.000000 -163.255752"
+                "lookat" "-140.384384 -1781.122192 -96.731933"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-560.000000 -2208.000000 -163.255752"
+                "lookat" "-422.182128 -2112.031250 -100.248817"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-420.721313 -2112.031250 -92.662239"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Rush Regular 3.rec"
+            }
+            "B Rush Regular 4"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-139.348297 -1780.360473 -99.017478"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Rush Regular 4.rec"
+            }
+        }
+        "B Fake"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Fake Smoker"
+            {
+                "position" "-576.000000 -2272.000000 -162.255752"
+                "lookat" "-414.770233 -2112.031250 -94.322242"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Fake Smoker.rec"
+            }
+            "B Fake Regular"
+            {
+                "position" "-432.000000 -2208.000000 -163.255752"
+                "lookat" "-119.870788 -1779.609375 -101.270614"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Fake Regular.rec"
+            }
+            "B Fake Regular 2"
+            {
+                "position" "-624.000000 -2224.000000 -164.408843"
+                "lookat" "-751.968750 -1867.996459 -70.306068"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Fake Regular 2.rec"
+            }
+            "B Fake Regular 3"
+            {
+                "position" "-560.000000 -2208.000000 -163.255752"
+                "lookat" "-615.756835 -2112.031250 -90.942695"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Fake Regular 3.rec"
+            }
+            "B Fake Regular 4"
+            {
+                "position" "-416.000000 -2272.000000 -163.255752"
+                "lookat" "-607.193847 -2112.031250 -95.359626"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_ancient/B Fake Regular 4.rec"
+            }
+        }
+    }
     "de_mirage"
     {
         "B Rush"
