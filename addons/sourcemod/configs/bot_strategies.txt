@@ -95,7 +95,7 @@
             "B Exec Cave Smoker"
             {
                 "position" "-576.000000 -2272.000000 -162.255752"
-                "lookat" "-200.031280 -2006.704589 -104.086624"
+                "lookat" "-410.882446 -2112.031250 -97.187614"
                 "utility1" "45 1"
                 "utility2" "46 1"
                 "replay" "addons/sourcemod/data/botmimic/strategies/de_ancient/B Exec Cave Smoker.rec"
