@@ -35,7 +35,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
-bool g_bIsBombScenario, g_bIsHostageScenario, g_bFreezetimeEnd, g_bBombPlanted, g_bEveryoneDead, g_bBombExploded, g_bHalftimeSwitch, g_bIsCompetitive;
+bool g_bIsBombScenario, g_bIsHostageScenario, g_bFreezetimeEnd, g_bRoundEnded, g_bBombPlanted, g_bEveryoneDead, g_bBombExploded, g_bHalftimeSwitch, g_bIsCompetitive;
 bool g_bRoundWonCT, g_bRoundWonT;
 bool g_bUseCZ75[MAXPLAYERS+1], g_bUseUSP[MAXPLAYERS+1], g_bUseM4A1S[MAXPLAYERS+1], g_bDontSwitch[MAXPLAYERS+1], g_bDropWeapon[MAXPLAYERS+1], g_bHasGottenDrop[MAXPLAYERS+1];
 bool g_bIsProBot[MAXPLAYERS+1], g_bIsIntermediateBot[MAXPLAYERS+1], g_bIsAWPer[MAXPLAYERS+1], g_bThrowGrenade[MAXPLAYERS+1], g_bUncrouch[MAXPLAYERS+1];
@@ -813,6 +813,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	}
 	
 	g_bFreezetimeEnd = false;
+	g_bRoundEnded = false;
 	g_bEveryoneDead = false;
 	g_fRoundStart = GetGameTime();
 	g_bBombPlanted = false;
@@ -879,7 +880,7 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 {
     ClearActiveStrategy(false);
     g_bCTDefaultsAssigned = false;
-    g_bFreezetimeEnd = false;
+    g_bRoundEnded = true;
     EnableBombSites();
 	if (g_iCurrentRound == 0 || g_iCurrentRound == 12)
 	{
@@ -4163,7 +4164,7 @@ bool HasStrategyForTeam(int team)
 
 bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float fVel[3])
 {
-    if (!g_bFreezetimeEnd || IsWarmupPeriod() || g_bBombPlanted || g_iMaxDefaults <= 0)
+    if (!g_bFreezetimeEnd || g_bRoundEnded || IsWarmupPeriod() || g_bBombPlanted || g_iMaxDefaults <= 0)
         return false;
 
     if (!g_bCTDefaultsAssigned)
@@ -4265,7 +4266,7 @@ void AssignCTDefaults()
 {
     g_bCTDefaultsAssigned = true;
 
-    if (g_iMaxDefaults <= 0 || g_bBombPlanted || !IsItMyChance(50.0))
+    if (g_iMaxDefaults <= 0 || g_bRoundEnded || g_bBombPlanted || !IsItMyChance(50.0))
         return;
 
     bool used[MAXPLAYERS + 1];
