@@ -5,7 +5,7 @@
         "A Rush"
         {
             "team" "T"
-            "chance" "15.0"
+            "chance" "25.0"
             "minplayers" "5"
 
             "A Rush Donut Smoker"
@@ -46,7 +46,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "35.0"
             "minplayers" "5"
             
             "B Rush Smoker"
@@ -127,7 +127,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "35.0"
             "minplayers" "5"
 
             "B Rush Smoker"
@@ -166,7 +166,7 @@
         "A Rush"
         {
             "team" "T"
-            "chance" "15.0"
+            "chance" "25.0"
             "minplayers" "5"
 
             "A Rush Smoker"
@@ -205,7 +205,7 @@
         "B Fake"
         {
             "team" "T"
-            "chance" "15.0"
+            "chance" "25.0"
             "minplayers" "5"
 
             "B Fake Smoker"
@@ -253,16 +253,16 @@
             "A Rush Flasher"
             {
                 "position" "-1947.010009 -1102.109985 -416.633087"
-                "lookat" "-924.031188 -1108.268676 -141.442565"
-                "utility1" "45 1"
-                "utility2" "43 1"
+                "lookat" "-924.031188 -1140.343383 -142.200775"
+                "utility1" "43 1"
                 "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Flasher.rec"
             }
-            "A Rush Door Smoker"
+            "A Rush Smoker"
             {
                 "position" "-1929.000000 -1025.000000 -418.478851"
-                "lookat" "-1102.044189 -1158.968750 -334.660430"
-                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Door Smoker.rec"
+                "lookat" "-1105.307250 -1158.968750 -331.914978"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Smoker.rec"
             }
             "A Rush Door Opener"
             {
@@ -292,15 +292,15 @@
             "Vent Drop Flasher"
             {
                 "position" "-1943.865966 -1112.895996 -416.117431"
-                "lookat" "-1696.031250 -1023.865600 -374.380493"
-                "utility1" "45 1"
-                "utility2" "43 1"
+                "lookat" "-924.031250 -1116.965454 -141.578033"
+                "utility1" "43 1"
                 "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Flasher.rec"
             }
             "Vent Drop Smoker"
             {
                 "position" "-1874.000000 -1076.000000 -416.651306"
-                "lookat" "-496.031250 -1052.982421 -320.634887"
+                "lookat" "-496.031250 -1060.571533 -318.885864"
+                "utility1" "45 1"
                 "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Smoker.rec"
             }
             "Vent Drop Door Opener"
@@ -325,13 +325,13 @@
         "Ramp Rush"
         {
             "team" "T"
-            "chance" "25.0"
+            "chance" "35.0"
             "minplayers" "5"
 
             "Ramp Rush Flasher"
             {
                 "position" "-1832.000000 -1160.000000 -415.968750"
-                "lookat" "-496.031250 -917.283081 -318.132110"
+                "lookat" "-496.031250 -939.656250 -317.075317"
                 "utility1" "45 1"
                 "utility2" "43 1"
                 "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Flasher.rec"

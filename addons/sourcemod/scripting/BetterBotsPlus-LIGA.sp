@@ -154,6 +154,7 @@ char g_szStrategyRoleReplay[MAX_STRATEGIES][MAX_STRATEGY_ROLES][128];
 bool g_bStrategyActive = false;
 bool g_bStrategyStarted = false;
 bool g_bStrategySelectionPending = false;
+bool g_bStrategySelectionRolled = false;
 int g_iActiveStrategy = -1;
 int g_iStrategyRoleClient[MAX_STRATEGY_ROLES];
 bool g_bStrategyRoleSkipped[MAX_STRATEGY_ROLES];
@@ -820,6 +821,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_bBombExploded = false;
 	g_bCTDefaultsAssigned = false;
 	ClearActiveStrategy(false);
+	g_bStrategySelectionRolled = false;
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -952,7 +954,11 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_fFreezeTimeEnd = GetGameTime();
     g_bStrategySelectionPending = HasStrategyForTeam(CS_TEAM_T);
     AssignCTDefaults();
-    CreateTimer(0.5, Timer_SelectStrategy, 0, TIMER_FLAG_NO_MAPCHANGE);
+    TrySelectStrategy();
+    if (!g_bStrategyActive)
+    {
+        g_bStrategySelectionPending = false;
+    }
 
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -3490,12 +3496,7 @@ public Action Timer_SelectStrategy(Handle timer, any data)
 {
     TrySelectStrategy();
 
-    int attempts = data;
-    if (!g_bStrategyActive && attempts < 8 && g_bFreezetimeEnd && !g_bBombPlanted)
-    {
-        CreateTimer(0.5, Timer_SelectStrategy, attempts + 1, TIMER_FLAG_NO_MAPCHANGE);
-    }
-    else if (!g_bStrategyActive)
+    if (!g_bStrategyActive)
     {
         g_bStrategySelectionPending = false;
     }
@@ -3537,8 +3538,10 @@ void ClearActiveStrategy(bool bStopMimic)
 
 void TrySelectStrategy()
 {
-    if (g_bStrategyActive || IsWarmupPeriod() || !g_bFreezetimeEnd || g_iMaxStrategies <= 0)
+    if (g_bStrategyActive || g_bStrategySelectionRolled || IsWarmupPeriod() || !g_bFreezetimeEnd || g_iMaxStrategies <= 0)
         return;
+
+    g_bStrategySelectionRolled = true;
 
     int candidates[MAX_STRATEGIES];
     int candidateCount = 0;
