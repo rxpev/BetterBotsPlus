@@ -242,4 +242,124 @@
             }
         }
     }
+    "de_nuke"
+    {
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Rush Flasher"
+            {
+                "position" "-1947.010009 -1102.109985 -416.633087"
+                "lookat" "-924.031188 -1108.268676 -141.442565"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Flasher.rec"
+            }
+            "A Rush Door Smoker"
+            {
+                "position" "-1929.000000 -1025.000000 -418.478851"
+                "lookat" "-1102.044189 -1158.968750 -334.660430"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Door Smoker.rec"
+            }
+            "A Rush Door Opener"
+            {
+                "position" "-1808.000000 -1025.000000 -416.138000"
+                "lookat" "-1168.031250 -1204.370239 -314.762939"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Door Opener.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031250 -1026.043701 -334.388000"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Regular.rec"
+            }
+            "A Rush Regular 2"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031250 -1056.439941 -318.303253"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/A Rush Regular 2.rec"
+            }
+        }
+        "Vent Drop"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "Vent Drop Flasher"
+            {
+                "position" "-1943.865966 -1112.895996 -416.117431"
+                "lookat" "-1696.031250 -1023.865600 -374.380493"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Flasher.rec"
+            }
+            "Vent Drop Smoker"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031250 -1052.982421 -320.634887"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Smoker.rec"
+            }
+            "Vent Drop Door Opener"
+            {
+                "position" "-1808.000000 -1025.000000 -416.138000"
+                "lookat" "-1168.031250 -1198.403564 -329.445068"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Door Opener.rec"
+            }
+            "Vent Drop Regular"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031372 -917.828674 -345.093811"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Regular.rec"
+            }
+            "Vent Drop Regular 2"
+            {
+                "position" "-1878.000000 -980.000000 -417.254425"
+                "lookat" "-1252.031250 -1245.088012 -368.764801"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Vent Drop Regular 2.rec"
+            }
+        }
+        "Ramp Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "Ramp Rush Flasher"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031250 -917.283081 -318.132110"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Flasher.rec"
+            }
+            "Ramp Rush Regular"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031127 -1037.877197 -307.229095"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Regular.rec"
+            }
+            "Ramp Rush Regular 2"
+            {
+                "position" "-1808.000000 -1025.000000 -416.138000"
+                "lookat" "-1168.031250 -1196.101074 -330.310455"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Regular 2.rec"
+            }
+            "Ramp Rush Regular 3"
+            {
+                "position" "-1947.010009 -1102.109985 -416.633087"
+                "lookat" "-924.031250 -1140.374877 -143.559326"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Regular 3.rec"
+            }
+            "Ramp Rush Regular 4"
+            {
+                "position" "-1878.000000 -980.000000 -417.254425"
+                "lookat" "-1168.031250 -1278.224975 -335.693298"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_nuke/Ramp Rush Regular 4.rec"
+            }
+        }
+    }
 }
