@@ -32,6 +32,8 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FLASH_DODGE_TURN_TIMEOUT 1.6
 #define FLASH_RECOVER_LOCK_DELAY 0.1
 #define FLASH_RECOVER_LOCK_TIME 0.35
+#define FAKE_OBJECTIVE_ENEMY_RANGE 1250.0
+#define CT_DEFAULT_ARRIVE_DISTANCE 35.0
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -1025,6 +1027,12 @@ public Action OnBombBeginPlant(Event event, const char[] name, bool dontBroadcas
         return Plugin_Continue;
     }
 
+    if (!IsEnemyWithinRange(client, FAKE_OBJECTIVE_ENEMY_RANGE))
+    {
+        PrintToServer("[FAKEPLANT] No enemy within %.0f units for client %d. Sticking to actual plant.", FAKE_OBJECTIVE_ENEMY_RANGE, client);
+        return Plugin_Continue;
+    }
+
     bool shouldFake = false;
 
     if (IsLastTAlive(client))
@@ -1154,9 +1162,9 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
         return Plugin_Continue;
     }
 
-    if (!IsEnemyWithinRange(client, 1250.0))
+    if (!IsEnemyWithinRange(client, FAKE_OBJECTIVE_ENEMY_RANGE))
     {
-        PrintToServer("[FAKEDEFUSE] No enemy within 2500 units for client %d. Sticking to actual defuse.", client);
+        PrintToServer("[FAKEDEFUSE] No enemy within %.0f units for client %d. Sticking to actual defuse.", FAKE_OBJECTIVE_ENEMY_RANGE, client);
         return Plugin_Continue;
     }
 
@@ -4194,7 +4202,7 @@ bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float f
     Array_Copy(g_fDefaultLook[defaultSpot], fLookPos, 3);
 
     float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
-    bool bAtDefaultSpot = fDistance <= 35.0;
+    bool bAtDefaultSpot = fDistance <= CT_DEFAULT_ARRIVE_DISTANCE;
     bool bScriptedGrenadeInProgress = g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client);
 
     if (bScriptedGrenadeInProgress)
@@ -4214,15 +4222,15 @@ bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float f
 
     if (!g_bCTDefaultAtSpot[client])
     {
-        BotCancelMoveTo(client);
         BotEquipBestWeapon(client, true);
         g_bCTDefaultAtSpot[client] = true;
         g_bDidInitialSwitch[client] = true;
         PrintToServer("[DEFAULTS] %N is holding %s.", client, g_szDefaultName[defaultSpot]);
     }
 
-    BotSetLookAt(client, "CT default", fLookPos, PRIORITY_HIGH, 0.4, false, 2.0, false);
     StopCTDefaultMovement(iButtons, fVel);
+    TeleportEntity(client, fTargetPos, NULL_VECTOR, NULL_VECTOR);
+    BotLookAt(client, fLookPos);
 
     if (g_bDefaultDuck[defaultSpot])
         iButtons |= IN_DUCK;
@@ -4262,7 +4270,7 @@ bool IsClientAtCTDefaultSpot(int client)
     if (defaultSpot < 0 || defaultSpot >= g_iMaxDefaults)
         return false;
 
-    return GetVectorDistance(g_fBotOrigin[client], g_fDefaultPos[defaultSpot]) <= 35.0;
+    return GetVectorDistance(g_fBotOrigin[client], g_fDefaultPos[defaultSpot]) <= CT_DEFAULT_ARRIVE_DISTANCE;
 }
 
 void AssignCTDefaults()
