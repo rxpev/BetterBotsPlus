@@ -256,4 +256,128 @@
             }
         }
     }
+    "de_nuke"
+    {
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "A Rush Door"
+            {
+                "position" "-1808.000000 -1089.000000 -416.728698"
+                "lookat" "-496.031250 -1041.593505 -343.856567"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "utility3" "44 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/A Rush Door.rec"
+            }
+            "A Rush Smoker"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031127 -916.514160 -316.407226"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/A Rush Smoker.rec"
+            }
+            "A Rush Flasher"
+            {
+                "position" "-1929.000000 -1025.000000 -418.478851"
+                "lookat" "-1110.240234 -1158.968750 -323.979309"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/A Rush Flasher.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "-1878.000000 -980.000000 -417.254425"
+                "lookat" "-1168.700195 -1279.968750 -343.820770"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/A Rush Regular.rec"
+            }
+            "A Rush Regular 2"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031250 -1039.751831 -312.467254"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/A Rush Regular 2.rec"
+            }
+        }
+        "Ramp Rush"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "Ramp Rush Flasher"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031250 -913.953430 -325.579132"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Ramp Rush Flasher.rec"
+            }
+            "Ramp Rush Regular"
+            {
+                "position" "-1808.000000 -1025.000000 -416.138000"
+                "lookat" "-1168.031250 -1217.562988 -336.610137"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Ramp Rush Regular.rec"
+            }
+            "Ramp Rush Regular 2"
+            {
+                "position" "-1878.000000 -980.000000 -417.254425"
+                "lookat" "-1168.031250 -1268.308715 -324.435791"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Ramp Rush Regular 2.rec"
+            }
+            "Ramp Rush Regular 3"
+            {
+                "position" "-1929.000000 -1025.000000 -418.478851"
+                "lookat" "-1149.623168 -1158.968750 -332.093963"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Ramp Rush Regular 3.rec"
+            }
+            "Ramp Rush Regular 4"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031250 -1056.806396 -359.637451"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Ramp Rush Regular 4.rec"
+            }
+        }
+        "Contact A"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "Contact A Flasher"
+            {
+                "position" "-1878.000000 -980.000000 -417.254425"
+                "lookat" "-1168.031250 -1270.746459 -348.394165"
+                "utility1" "43 2"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Contact A Flasher.rec"
+            }
+            "Contact A Smoker 1"
+            {
+                "position" "-1808.000000 -1025.000000 -416.138000"
+                "lookat" "-520.015869 -1166.586181 -336.378051"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Contact A Smoker 1.rec"
+            }
+            "Contact A Smoker 2"
+            {
+                "position" "-1947.010009 -1102.109985 -416.633087"
+                "lookat" "-1444.546752 -1056.031250 -335.363983"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Contact A Smoker 2.rec"
+            }
+            "Contact A Regular"
+            {
+                "position" "-1874.000000 -1076.000000 -416.651306"
+                "lookat" "-496.031250 -1052.562866 -326.453857"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Contact A Regular.rec"
+            }
+            "Contact A Regular 2"
+            {
+                "position" "-1832.000000 -1160.000000 -415.968750"
+                "lookat" "-496.031127 -914.944213 -320.984252"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_nuke/Contact A Regular 2.rec"
+            }
+        }
+    }
 }
