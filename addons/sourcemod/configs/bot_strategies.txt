@@ -130,6 +130,133 @@
             }
         }
     }
+    "de_dust2"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "B Rush Entry Smoker"
+            {
+                "position" "-1181.000000 -754.000000 120.181243"
+                "lookat" "-1812.409667 695.968750 209.566299"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/B Rush Entry Smoker.rec"
+            }
+            "B Rush Flasher"
+            {
+                "position" "-1015.000000 -808.000000 116.059928"
+                "lookat" "-1959.228271 605.968627 265.590301"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/B Rush Flasher.rec"
+            }
+            "B Rush Smoker"
+            {
+                "position" "-980.000000 -754.000000 120.181243"
+                "lookat" "-2050.055419 605.968627 257.314575"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/B Rush Smoker.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-1076.000000 -843.000000 116.791778"
+                "lookat" "-1894.698486 695.968750 231.608627"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-822.364990 -795.642028 117.264625"
+                "lookat" "-2043.968750 -58.738098 208.986602"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/B Rush Regular 2.rec"
+            }
+        }
+        "A Execute"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "A Exec Long 1"
+            {
+                "position" "-428.000000 -843.000000 95.296356"
+                "lookat" "619.547729 -48.711303 35.105407"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Long.rec"
+            }
+            "A Exec Long 2"
+            {
+                "position" "-760.663024 -836.174011 117.071784"
+                "lookat" "767.236389 -170.403686 30.725860"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Long 2.rec"
+            }
+            "A Exec Flasher"
+            {
+                "position" "-696.844970 -806.624023 116.530059"
+                "lookat" "379.968750 -398.609252 84.983581"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Flasher.rec"
+            }
+            "A Exec Molly"
+            {
+                "position" "-367.000000 -808.000000 83.745101"
+                "lookat" "617.784423 -42.118286 56.424148"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Molly.rec"
+            }
+            "A Exec Regular"
+            {
+                "position" "-332.000000 -754.000000 78.833892"
+                "lookat" "623.579284 -63.758300 38.002655"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Regular.rec"
+            }
+        }
+        "Mid2B"
+        {
+            "team" "T"
+            "chance" "10.0"
+            "minplayers" "5"
+
+            "Mid Flasher"
+            {
+                "position" "-533.000000 -754.000000 117.233634"
+                "lookat" "-418.583221 -364.031250 185.867584"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/Mid Flasher.rec"
+            }
+            "Mid Smoker"
+            {
+                "position" "-428.000000 -843.000000 95.296356"
+                "lookat" "331.968750 -589.766601 146.776809"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Long 2.rec"
+            }
+            "Tunnels Util"
+            {
+                "position" "-1181.000000 -754.000000 120.181243"
+                "lookat" "-1844.722045 695.968750 189.569549"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/Tunnels Util.rec"
+            }
+            "Mid Regular"
+            {
+                "position" "-367.000000 -808.000000 83.745101"
+                "lookat" "763.968750 84.983825 47.156799"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/Mid Regular.rec"
+            }
+            "Tunnels Regular"
+            {
+                "position" "-1141.000000 -808.000000 116.685989"
+                "lookat" "-1810.301391 695.968627 207.110427"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/Tunnels Regular.rec"
+            }
+        }
+    }
     "de_mirage"
     {
         "B Rush"
