@@ -43,7 +43,7 @@ bool g_bUseCZ75[MAXPLAYERS+1], g_bUseUSP[MAXPLAYERS+1], g_bUseM4A1S[MAXPLAYERS+1
 bool g_bIsProBot[MAXPLAYERS+1], g_bIsIntermediateBot[MAXPLAYERS+1], g_bIsAWPer[MAXPLAYERS+1], g_bThrowGrenade[MAXPLAYERS+1], g_bUncrouch[MAXPLAYERS+1];
 bool g_bBotHasForcedBuy[MAXPLAYERS+1]; g_bDidFakePlant[MAXPLAYERS+1], g_bFakePlantRolled[MAXPLAYERS + 1], g_bIsFakeDefusing[MAXPLAYERS+1], g_bDidRun[MAXPLAYERS+1], g_bBotCompromised[MAXPLAYERS+1], g_bDidInitialSwitch[MAXPLAYERS+1];
 bool g_bHasSavedAWP[MAXPLAYERS + 1], g_bHasPickedUpAWP[MAXPLAYERS + 1], g_bIsAWPDonor[MAXPLAYERS + 1], g_bBuyDelayed[MAXPLAYERS + 1], g_bAWPDropQueued[MAXPLAYERS + 1], g_bDonationInProgress[MAXPLAYERS + 1], g_bShouldPickupDroppedGun[MAXPLAYERS + 1], g_bAwaitingHumanAWPDrop[MAXPLAYERS + 1];
-int g_iSavedAWPFor[MAXPLAYERS + 1], g_iHumanAWPDropDonor[MAXPLAYERS + 1];
+int g_iSavedAWPFor[MAXPLAYERS + 1], g_iHumanAWPDropDonor[MAXPLAYERS + 1], g_iReservedDroppedPrimary[MAXPLAYERS + 1], g_iLastLoggedDroppedPrimary[MAXPLAYERS + 1];
 int g_iProfileRank[MAXPLAYERS+1], g_iPlayerColor[MAXPLAYERS+1], g_iTarget[MAXPLAYERS+1], g_iPrevTarget[MAXPLAYERS+1], g_iDoingSmokeNum[MAXPLAYERS+1], g_iActiveWeapon[MAXPLAYERS+1];
 int g_iCurrentRound, g_iRoundsPlayed, g_iCTScore, g_iTScore, g_iMaxNades, g_iRoundsLostCT, g_iRoundsLostT;
 int g_iProfileRankOffset, g_iPlayerColorOffset;
@@ -726,6 +726,7 @@ public Action Timer_DropWeapons(Handle hTimer, any data)
             BotSetLookAt(iDonor, "Use entity", fEyes, PRIORITY_HIGH, 3.0, false, 5.0, false);
             g_bDropWeapon[iDonor] = true;
             g_bHasGottenDrop[i] = true;
+            g_bShouldPickupDroppedGun[i] = true;
             break;
         }
     }
@@ -836,6 +837,8 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bThrowGrenade[i] = false;
 			g_bAwaitingHumanAWPDrop[i] = false;
 			g_iHumanAWPDropDonor[i] = 0;
+			g_iReservedDroppedPrimary[i] = -1;
+			g_iLastLoggedDroppedPrimary[i] = -1;
 			g_bBotHasForcedBuy[i] = false;
 			g_bIsFakeDefusing[i] = false;
 			g_bDidRun[i] = false;
@@ -877,6 +880,8 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
     {
 		g_bDidFakePlant[i] = false;
 		g_bFakePlantRolled[i] = false;
+		g_iReservedDroppedPrimary[i] = -1;
+		g_iLastLoggedDroppedPrimary[i] = -1;
     }
 }
 
@@ -886,6 +891,7 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bCTDefaultsAssigned = false;
     g_bRoundEnded = true;
     EnableBombSites();
+    ClearDroppedPrimaryReservations();
 	if (g_iCurrentRound == 0 || g_iCurrentRound == 12)
 	{
 	    g_iRoundsLostCT = 1;
@@ -971,6 +977,18 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 
         if (g_bShouldPickupDroppedGun[i])
             CreateTimer(3.0, Timer_ClearPickupFlag, i, TIMER_FLAG_NO_MAPCHANGE);
+
+        float fClientEyes[3];
+        GetClientEyePosition(i, fClientEyes);
+
+        if (!PlayerHasPrimary(i) && TryMovePrimarylessBotToDroppedPrimary(i, fClientEyes, true))
+        {
+            continue;
+        }
+        else if (PlayerHasPrimary(i))
+        {
+            ClearDroppedPrimaryReservation(i);
+        }
 
         if (g_bIsAWPer[i])
         {
@@ -2404,7 +2422,17 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			            iPrimaryDefIndex = GetEntProp(iPrimary, Prop_Send, "m_iItemDefinitionIndex");
 			        }
 
-			        if (g_bIsAWPer[client] && IsValidEntity(iAWP))
+			        bool bMovingToReservedPrimary = false;
+			        if (!IsValidEntity(iPrimary))
+			        {
+			            bMovingToReservedPrimary = TryMovePrimarylessBotToDroppedPrimary(client, fClientEyes, pickupOverride);
+			        }
+			        else
+			        {
+			            ClearDroppedPrimaryReservation(client);
+			        }
+
+			        if (!bMovingToReservedPrimary && g_bIsAWPer[client] && IsValidEntity(iAWP))
 			        {
 			            float fAWPLocation[3];
 			            GetEntPropVector(iAWP, Prop_Send, "m_vecOrigin", fAWPLocation);
@@ -2428,7 +2456,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			                PrintToServer("[AWP DEBUG] AWPer %N picked up donated user AWP, removing buy delay", client);
 			            }
 			        }
-			        else if (!IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
+			        else if (!bMovingToReservedPrimary && !IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
 			        {
 			            int awper = FindAWPerWithoutAWP(client);
 			            
@@ -2451,7 +2479,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			                }
 			            }
 			        }
-			        if ((!g_bBombPlanted || pickupOverride) && (!BotIsHiding(client) || pickupOverride) && (GetTask(client) != COLLECT_HOSTAGES || pickupOverride) && (GetTask(client) != RESCUE_HOSTAGES || pickupOverride) && (!IsValidEntity(iDroppedC4) || pickupOverride))
+			        if (!bMovingToReservedPrimary && (!g_bBombPlanted || pickupOverride) && (!BotIsHiding(client) || pickupOverride) && (GetTask(client) != COLLECT_HOSTAGES || pickupOverride) && (GetTask(client) != RESCUE_HOSTAGES || pickupOverride) && (!IsValidEntity(iDroppedC4) || pickupOverride))
 			        {
 						if (IsValidEntity(iAK47))
 						{
@@ -2832,6 +2860,8 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
     if (IsValidClient(victim))
     {
+        ClearDroppedPrimaryReservation(victim);
+
         if (g_bHasPickedUpAWP[victim])
         {
             int awper = g_iSavedAWPFor[victim];
@@ -2882,6 +2912,8 @@ public void OnPlayerSpawn(Event eEvent, const char[] szName, bool bDontBroadcast
 
     if (IsValidClient(client) && IsFakeClient(client))
     {
+        ClearDroppedPrimaryReservation(client);
+
         if (g_bUseUSP[client] && GetClientTeam(client) == CS_TEAM_CT)
         {
             char szUSP[32];
@@ -2918,6 +2950,7 @@ public void OnClientDisconnect(int client)
         ClearSavedAWPForAWPer(client);
         g_bAwaitingHumanAWPDrop[client] = false;
         g_iHumanAWPDropDonor[client] = 0;
+        ClearDroppedPrimaryReservation(client);
         g_bBuyDelayed[client] = false;
         g_bDonationInProgress[client] = false;
 
@@ -5211,6 +5244,204 @@ int FindNearestDroppedSpecificGun(int client, const char[] className)
     }
 
     return nearest;
+}
+
+void ClearDroppedPrimaryReservation(int client)
+{
+    if (client <= 0 || client > MaxClients)
+        return;
+
+    g_iReservedDroppedPrimary[client] = -1;
+    g_iLastLoggedDroppedPrimary[client] = -1;
+}
+
+void ClearDroppedPrimaryReservations()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        g_iReservedDroppedPrimary[i] = -1;
+        g_iLastLoggedDroppedPrimary[i] = -1;
+    }
+}
+
+bool IsDroppedPrimaryReservedForOther(int weapon, int client)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (i != client && g_iReservedDroppedPrimary[i] == weapon)
+            return true;
+    }
+
+    return false;
+}
+
+bool HasDropSystemPrimaryPickupPriority(int client)
+{
+    return IsValidClient(client)
+        && IsFakeClient(client)
+        && IsPlayerAlive(client)
+        && !PlayerHasPrimary(client)
+        && (g_bHasGottenDrop[client] || g_bShouldPickupDroppedGun[client] || g_bAwaitingHumanAWPDrop[client] || g_bBuyDelayed[client] || g_bDonationInProgress[client]);
+}
+
+bool IsDroppedPrimaryReservedByDropSystem(int weapon, int client)
+{
+    if (!IsValidEntity(weapon))
+        return false;
+
+    char className[64];
+    GetEntityClassname(weapon, className, sizeof(className));
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (i == client || !HasDropSystemPrimaryPickupPriority(i))
+            continue;
+
+        if (GetClientTeam(i) != GetClientTeam(client))
+            continue;
+
+        if (strcmp(className, "weapon_awp") == 0 && !g_bIsAWPer[i] && g_bAwaitingHumanAWPDrop[i])
+            continue;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool IsPrimaryWeaponClassname(const char[] className)
+{
+    static const char primaryClassnames[][] =
+    {
+        "weapon_galilar", "weapon_famas", "weapon_ak47", "weapon_m4a1", "weapon_m4a1_silencer",
+        "weapon_ssg08", "weapon_aug", "weapon_sg556", "weapon_awp", "weapon_scar20", "weapon_g3sg1",
+        "weapon_nova", "weapon_xm1014", "weapon_mag7", "weapon_sawedoff", "weapon_m249", "weapon_negev",
+        "weapon_mac10", "weapon_mp9", "weapon_mp7", "weapon_mp5sd", "weapon_ump45", "weapon_p90", "weapon_bizon"
+    };
+
+    for (int i = 0; i < sizeof(primaryClassnames); i++)
+    {
+        if (strcmp(className, primaryClassnames[i]) == 0)
+            return true;
+    }
+
+    return false;
+}
+
+bool IsAvailableDroppedPrimary(int weapon, int client)
+{
+    if (!IsValidEntity(weapon))
+        return false;
+
+    char className[64];
+    GetEntityClassname(weapon, className, sizeof(className));
+    if (!IsPrimaryWeaponClassname(className))
+        return false;
+
+    int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
+    if (owner > 0)
+        return false;
+
+    if (IsDroppedPrimaryReservedForOther(weapon, client))
+        return false;
+
+    return !IsDroppedPrimaryReservedByDropSystem(weapon, client);
+}
+
+int FindNearestUnreservedDroppedPrimary(int client, float fClientEyes[3], bool pickupOverride, float fWeaponPos[3])
+{
+    static const char primaryClassnames[][] =
+    {
+        "weapon_galilar", "weapon_famas", "weapon_ak47", "weapon_m4a1", "weapon_m4a1_silencer",
+        "weapon_ssg08", "weapon_aug", "weapon_sg556", "weapon_awp", "weapon_scar20", "weapon_g3sg1",
+        "weapon_nova", "weapon_xm1014", "weapon_mag7", "weapon_sawedoff", "weapon_m249", "weapon_negev",
+        "weapon_mac10", "weapon_mp9", "weapon_mp7", "weapon_mp5sd", "weapon_ump45", "weapon_p90", "weapon_bizon"
+    };
+
+    float fClientOrigin[3];
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    int nearest = -1;
+    float bestDist = -1.0;
+
+    for (int i = 0; i < sizeof(primaryClassnames); i++)
+    {
+        int weapon = -1;
+        while ((weapon = FindEntityByClassname(weapon, primaryClassnames[i])) != -1)
+        {
+            if (!IsAvailableDroppedPrimary(weapon, client))
+                continue;
+
+            float fPos[3];
+            GetEntPropVector(weapon, Prop_Send, "m_vecOrigin", fPos);
+            if (GetVectorLength(fPos) == 0.0)
+                continue;
+
+            if (!pickupOverride && !IsPointVisible(fClientEyes, fPos))
+                continue;
+
+            float dist = GetVectorDistance(fClientOrigin, fPos);
+            if (nearest == -1 || dist < bestDist)
+            {
+                nearest = weapon;
+                bestDist = dist;
+                Array_Copy(fPos, fWeaponPos, 3);
+            }
+        }
+    }
+
+    return nearest;
+}
+
+bool TryMovePrimarylessBotToDroppedPrimary(int client, float fClientEyes[3], bool pickupOverride)
+{
+    if (PlayerHasPrimary(client))
+    {
+        ClearDroppedPrimaryReservation(client);
+        return false;
+    }
+
+    float fWeaponPos[3];
+    int weapon = g_iReservedDroppedPrimary[client];
+    bool bNewReservation = false;
+
+    if (IsAvailableDroppedPrimary(weapon, client))
+    {
+        GetEntPropVector(weapon, Prop_Send, "m_vecOrigin", fWeaponPos);
+        if (GetVectorLength(fWeaponPos) == 0.0 || (!pickupOverride && !IsPointVisible(fClientEyes, fWeaponPos)))
+        {
+            ClearDroppedPrimaryReservation(client);
+            weapon = -1;
+        }
+    }
+    else
+    {
+        ClearDroppedPrimaryReservation(client);
+        weapon = -1;
+    }
+
+    if (!IsValidEntity(weapon))
+    {
+        weapon = FindNearestUnreservedDroppedPrimary(client, fClientEyes, pickupOverride, fWeaponPos);
+        if (!IsValidEntity(weapon))
+            return false;
+
+        g_iReservedDroppedPrimary[client] = weapon;
+        bNewReservation = true;
+    }
+
+    BotSetLookAt(client, "Primary pickup", fWeaponPos, PRIORITY_HIGH, 0.4, false, 5.0, false);
+    BotMoveTo(client, fWeaponPos, FASTEST_ROUTE);
+
+    if (bNewReservation || g_iLastLoggedDroppedPrimary[client] != weapon)
+    {
+        char className[64];
+        GetEntityClassname(weapon, className, sizeof(className));
+        PrintToServer("[PICKUP DEBUG] Primaryless bot %N reserved dropped %s (ent %d)", client, className, weapon);
+        g_iLastLoggedDroppedPrimary[client] = weapon;
+    }
+
+    return true;
 }
 
 bool IsInArray(const char[] szWeapon, const char[][] szList, int iSize)
