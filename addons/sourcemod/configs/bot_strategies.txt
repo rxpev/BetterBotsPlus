@@ -5,7 +5,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "B Rush Deep Smoker"
@@ -47,7 +47,7 @@
         "A Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "A Rush CT Smoker"
@@ -89,7 +89,7 @@
         "B Execute"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "B Exec Cave Smoker"
@@ -135,7 +135,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "B Rush Entry Smoker"
@@ -175,10 +175,10 @@
         "A Execute"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
-            "A Exec Long 1"
+            "A Exec Long"
             {
                 "position" "-428.000000 -843.000000 95.296356"
                 "lookat" "619.547729 -48.711303 35.105407"
@@ -217,7 +217,7 @@
         "Mid2B"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "Mid Flasher"
@@ -233,7 +233,7 @@
                 "position" "-428.000000 -843.000000 95.296356"
                 "lookat" "331.968750 -589.766601 146.776809"
                 "utility1" "45 1"
-                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/A Exec Long 2.rec"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_dust2/Mid Smoker.rec"
             }
             "Tunnels Util"
             {
@@ -262,7 +262,7 @@
         "B Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "B Rush Smoker"
@@ -302,7 +302,7 @@
         "A Execute"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "A Exec Jungle Smoker"
@@ -343,7 +343,7 @@
         "B Split"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "B Split Window Smoker"
@@ -388,7 +388,7 @@
         "A Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "A Rush Door"
@@ -430,7 +430,7 @@
         "Ramp Rush"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "Ramp Rush Flasher"
@@ -468,7 +468,7 @@
         "Contact A"
         {
             "team" "T"
-            "chance" "10.0"
+            "chance" "15.0"
             "minplayers" "5"
 
             "Contact A Flasher"
