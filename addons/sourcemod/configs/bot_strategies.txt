@@ -130,6 +130,137 @@
             }
         }
     }
+    "de_anubis"
+    {
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Rush Regular"
+            {
+                "position" "-192.000000 -1608.000000 -9.241274"
+                "lookat" "708.084838 -1092.031250 70.096420"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/A Rush Regular.rec"
+            }
+            "A Rush Entry Molly"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "-421.358123 -1356.031250 135.409072"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/A Rush Entry Molly.rec"
+            }
+            "A Rush Nader"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "416.731994 -1254.219238 76.729629"
+                "utility1" "44 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/A Rush Nader.rec"
+            }
+            "A Rush Camera Smoke"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "712.958740 -1092.031250 92.405029"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/A Rush Camera Smoke.rec"
+            }
+            "A Rush Flasher"
+            {
+                "position" "-304.000000 -1608.000000 -11.464140"
+                "lookat" "758.870239 -1092.031250 75.493919"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/A Rush Flasher.rec"
+            }
+        }
+        "B Execute"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Exec Con Smoker"
+            {
+                "position" "-304.000000 -1608.000000 -11.464140"
+                "lookat" "-1211.732910 -931.905761 151.746917"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Exec Con Smoker.rec"
+            }
+            "B Exec CT Smoker"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "-1199.417724 -921.019775 139.044677"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Exec CT Smoker.rec"
+            }
+            "B Exec Temple Smoker"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "-1187.119384 -908.744140 138.841247"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Exec Temple Smoker.rec"
+            }
+            "B Exec Regular"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "-1174.709960 -895.190917 149.009063"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Exec Regular.rec"
+            }
+            "B Exec Regular 2"
+            {
+                "position" "-192.000000 -1608.000000 -9.241275"
+                "lookat" "-1227.108276 -948.123291 144.260147"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Exec Regular 2.rec"
+            }
+        }
+        "B Split"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Split Con Flasher"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "-421.499542 -1356.031250 135.868164"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Split Con Flasher.rec"
+            }
+            "B Split Con Regular"
+            {
+                "position" "-192.000000 -1608.000000 -9.241274"
+                "lookat" "704.314208 -1092.031250 94.966522"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Split Con Regular.rec"
+            }
+            "B Split Con Regular 2"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "411.867980 -1254.482910 79.999359"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Split Con Regular 2.rec"
+            }
+            "B Split CT Smoker"
+            {
+                "position" "-304.000000 -1608.000000 -11.464141"
+                "lookat" "-1210.119873 -930.731567 147.844421"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Split CT Smoker.rec"
+            }
+            "B Split Temple Smoker"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "-1169.075195 -889.326049 151.054107"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_anubis/B Split Temple Smoker.rec"
+            }
+        }
+    }
     "de_dust2"
     {
         "B Rush"
