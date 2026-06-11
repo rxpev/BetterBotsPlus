@@ -34,6 +34,11 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FLASH_RECOVER_LOCK_TIME 0.35
 #define FAKE_OBJECTIVE_ENEMY_RANGE 1250.0
 #define CT_DEFAULT_ARRIVE_DISTANCE 35.0
+#define CT_DEFAULT_BOMB_CALLOUT_CHANCE 75.0
+#define CT_DEFAULT_BOMB_CALLOUT_COOLDOWN 1.5
+#define CT_DEFAULT_THREAT_SOUND_MAX_DIST 900.0
+#define CT_DEFAULT_THREAT_SOUND_FRONT_DOT 0.35
+#define CT_DEFAULT_THREAT_SOUND_COOLDOWN 1.0
 #define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
 
 char g_szMap[128];
@@ -121,6 +126,12 @@ int g_iCTDefaultSpot[MAXPLAYERS + 1] = {-1, ...};
 bool g_bCTDefaultAtSpot[MAXPLAYERS + 1];
 bool g_bDefaultClaimed[MAX_DEFAULTS];
 bool g_bCTDefaultsAssigned = false;
+float g_fLastCTDefaultBombCallout;
+float g_fLastCTDefaultThreatSound[MAXPLAYERS + 1];
+int g_iRecentCTBombDropVictimUserId;
+int g_iRecentCTBombDropAttackerUserId;
+float g_fRecentCTBombDropKillTime;
+float g_fRecentCTBombDropAttackerPos[3];
 
 //BOT Peek Variables
 float g_fPeekPos[MAX_PEEKS][3];
@@ -301,6 +312,7 @@ public void OnPluginStart()
 	HookEventEx("weapon_fire", OnWeaponFire);
 	HookEvent("bomb_beginplant", OnBombBeginPlant);
 	HookEvent("player_death", OnPlayerDeath);
+	HookEvent("bomb_dropped", OnBombDropped);
 	HookEvent("bomb_planted", OnBombPlanted, EventHookMode_Post);
 	HookEvent("bomb_begindefuse", OnBombBeginDefuse);
 	HookEvent("bomb_exploded", OnBombExploded);
@@ -2019,10 +2031,16 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		float fClientEyes[3], fNoisePosition[3];
 		
 		GetClientEyePosition(client, fClientEyes);
+		DHookGetParamVector(hParams, 2, fNoisePosition);
+
+		if (ShouldReleaseCTDefaultForThreatSound(client, fNoisePosition, bIsWalking))
+		{
+			ClearClientCTDefault(client, true);
+			PrintToServer("[DEFAULTS] %N left CT default after a nearby side/back sound.", client);
+		}
+
 		if(IsItMyChance(35.0) && IsPointVisible(fClientEyes, fNoisePosition) && LineGoesThroughSmoke(fClientEyes, fNoisePosition) && !bIsWalking)
 			DHookSetParam(hParams, 7, true);
-			
-		DHookGetParamVector(hParams, 2, fNoisePosition);
 		
 		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
 		{
@@ -2050,6 +2068,12 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		float fPos[3], fClientEyes[3];
 		GetClientEyePosition(client, fClientEyes);
 		DHookGetParamVector(hParams, 2, fPos);
+
+		if (ShouldReleaseCTDefaultForThreatSound(client, fPos, false))
+		{
+			ClearClientCTDefault(client, true);
+			PrintToServer("[DEFAULTS] %N left CT default after nearby side/back gunfire.", client);
+		}
 		
 		fPos[2] += 25.0;
 		DHookSetParamVector(hParams, 2, fPos);
@@ -2700,6 +2724,11 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 					return Plugin_Continue;
 				}
 
+				if (GetClientTeam(client) == CS_TEAM_CT && bIsEnemyVisible && IsPlayerCarryingBomb(g_iTarget[client]))
+				{
+					ReleaseCTDefaultsToTeammatePosition(client, "spotted bomb carrier");
+				}
+
 				if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
 				{
 					if (g_iDoingSmokeNum[client] != -1)
@@ -2869,6 +2898,20 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
     int victim = GetClientOfUserId(event.GetInt("userid"));
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 
+    if (IsValidClient(victim) && IsValidClient(attacker) && victim != attacker &&
+        GetClientTeam(victim) == CS_TEAM_T && GetClientTeam(attacker) == CS_TEAM_CT)
+    {
+        g_iRecentCTBombDropVictimUserId = event.GetInt("userid");
+        g_iRecentCTBombDropAttackerUserId = event.GetInt("attacker");
+        g_fRecentCTBombDropKillTime = GetGameTime();
+        GetClientAbsOrigin(attacker, g_fRecentCTBombDropAttackerPos);
+
+        if (IsPlayerCarryingBomb(victim))
+        {
+            ReleaseCTDefaultsToTeammatePosition(attacker, "killed bomb carrier");
+        }
+    }
+
     if (IsValidClient(victim))
     {
         ClearDroppedPrimaryReservation(victim);
@@ -2914,6 +2957,24 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
     ClearClientCTDefault(victim, false);
     return Plugin_Continue; 
+}
+
+public Action OnBombDropped(Event event, const char[] name, bool dontBroadcast)
+{
+    int dropperUserId = event.GetInt("userid");
+    float now = GetGameTime();
+
+    if (dropperUserId == g_iRecentCTBombDropVictimUserId &&
+        now - g_fRecentCTBombDropKillTime <= 1.0)
+    {
+        int attacker = GetClientOfUserId(g_iRecentCTBombDropAttackerUserId);
+        if (IsValidClient(attacker) && IsPlayerAlive(attacker) && GetClientTeam(attacker) == CS_TEAM_CT)
+            ReleaseCTDefaultsToTeammatePosition(attacker, "killed bomb carrier");
+        else
+            ReleaseCTDefaultsToPosition(g_fRecentCTBombDropAttackerPos, "killed bomb carrier", 0);
+    }
+
+    return Plugin_Continue;
 }
 
 public void OnPlayerSpawn(Event eEvent, const char[] szName, bool bDontBroadcast)
@@ -4268,6 +4329,104 @@ bool HasStrategyForTeam(int team)
     }
 
     return false;
+}
+
+bool IsPlayerCarryingBomb(int client)
+{
+    if (!IsValidClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_T)
+        return false;
+
+    int c4 = GetPlayerWeaponSlot(client, CS_SLOT_C4);
+    return c4 != -1 && IsValidEntity(c4);
+}
+
+void ReleaseCTDefaultsToTeammatePosition(int teammate, const char[] reason)
+{
+    if (!IsValidClient(teammate) || !IsPlayerAlive(teammate) || GetClientTeam(teammate) != CS_TEAM_CT)
+        return;
+
+    float fCalloutPos[3];
+    GetClientAbsOrigin(teammate, fCalloutPos);
+    ReleaseCTDefaultsToPosition(fCalloutPos, reason, teammate);
+}
+
+void ReleaseCTDefaultsToPosition(float fCalloutPos[3], const char[] reason, int sourceClient)
+{
+    if (g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod())
+        return;
+
+    float now = GetGameTime();
+    if (now - g_fLastCTDefaultBombCallout < CT_DEFAULT_BOMB_CALLOUT_COOLDOWN)
+        return;
+
+    int released = 0;
+    int moving = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (g_iCTDefaultSpot[i] < 0)
+            continue;
+
+        if (!IsValidClient(i) || !IsFakeClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) != CS_TEAM_CT)
+        {
+            ClearClientCTDefault(i, false);
+            continue;
+        }
+
+        ClearClientCTDefault(i, true);
+        released++;
+
+        if (IsItMyChance(CT_DEFAULT_BOMB_CALLOUT_CHANCE))
+        {
+            BotMoveTo(i, fCalloutPos, FASTEST_ROUTE);
+            moving++;
+        }
+    }
+
+    if (released > 0)
+    {
+        g_fLastCTDefaultBombCallout = now;
+        if (sourceClient > 0 && IsValidClient(sourceClient))
+            PrintToServer("[DEFAULTS] %N triggered CT default release (%s): %d released, %d moving.", sourceClient, reason, released, moving);
+        else
+            PrintToServer("[DEFAULTS] CT default release (%s): %d released, %d moving.", reason, released, moving);
+    }
+}
+
+bool ShouldReleaseCTDefaultForThreatSound(int client, float fNoisePosition[3], bool bIsWalking)
+{
+    if (bIsWalking || g_iCTDefaultSpot[client] < 0)
+        return false;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT)
+        return false;
+
+    float now = GetGameTime();
+    if (now - g_fLastCTDefaultThreatSound[client] < CT_DEFAULT_THREAT_SOUND_COOLDOWN)
+        return false;
+
+    float fClientOrigin[3];
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    float fToNoise[3];
+    SubtractVectors(fNoisePosition, fClientOrigin, fToNoise);
+    fToNoise[2] = 0.0;
+
+    float distance = NormalizeVector(fToNoise, fToNoise);
+    if (distance <= CT_DEFAULT_ARRIVE_DISTANCE || distance > CT_DEFAULT_THREAT_SOUND_MAX_DIST)
+        return false;
+
+    float fEyeAngles[3], fForward[3];
+    GetClientEyeAngles(client, fEyeAngles);
+    GetAngleVectors(fEyeAngles, fForward, NULL_VECTOR, NULL_VECTOR);
+    fForward[2] = 0.0;
+    NormalizeVector(fForward, fForward);
+
+    if (GetVectorDotProduct(fForward, fToNoise) > CT_DEFAULT_THREAT_SOUND_FRONT_DOT)
+        return false;
+
+    g_fLastCTDefaultThreatSound[client] = now;
+    return true;
 }
 
 bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float fVel[3])
