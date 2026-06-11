@@ -964,7 +964,11 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bFreezetimeEnd = true;
     g_fFreezeTimeEnd = GetGameTime();
     g_bStrategySelectionPending = HasStrategyForTeam(CS_TEAM_T);
-    AssignCTDefaults();
+    if (!TryAssignCTDefaults())
+    {
+        CreateTimer(0.2, Timer_AssignCTDefaults, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    }
+
     TrySelectStrategy();
     if (!g_bStrategyActive && g_bStrategySelectionPending)
     {
@@ -4272,7 +4276,10 @@ bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float f
         return false;
 
     if (!g_bCTDefaultsAssigned)
-        AssignCTDefaults();
+    {
+        if (!TryAssignCTDefaults())
+            return false;
+    }
 
     int defaultSpot = g_iCTDefaultSpot[client];
     if (defaultSpot < 0 || defaultSpot >= g_iMaxDefaults)
@@ -4364,6 +4371,26 @@ bool IsClientAtCTDefaultSpot(int client)
         return false;
 
     return GetVectorDistance(g_fBotOrigin[client], g_fDefaultPos[defaultSpot]) <= CT_DEFAULT_ARRIVE_DISTANCE;
+}
+
+public Action Timer_AssignCTDefaults(Handle timer, any data)
+{
+    if (TryAssignCTDefaults())
+        return Plugin_Stop;
+
+    return Plugin_Continue;
+}
+
+bool TryAssignCTDefaults()
+{
+    if (g_bCTDefaultsAssigned || g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod())
+        return true;
+
+    if (IsWeaponDropPendingForStrategyTeam(CS_TEAM_CT))
+        return false;
+
+    AssignCTDefaults();
+    return true;
 }
 
 void AssignCTDefaults()
