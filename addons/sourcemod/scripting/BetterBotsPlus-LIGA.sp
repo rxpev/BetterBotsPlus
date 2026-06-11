@@ -34,6 +34,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FLASH_RECOVER_LOCK_TIME 0.35
 #define FAKE_OBJECTIVE_ENEMY_RANGE 1250.0
 #define CT_DEFAULT_ARRIVE_DISTANCE 35.0
+#define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -57,6 +58,7 @@ float g_fNadeClaimTime[MAX_NADES], g_fLastMoveTime[MAXPLAYERS + 1], g_fBombsiteD
 float g_fShootTimestamp[MAXPLAYERS+1], g_fThrowNadeTimestamp[MAXPLAYERS+1], g_fCrouchTimestamp[MAXPLAYERS+1];
 
 ConVar g_hCvarIsAWP;
+ConVar g_hCvarIsFaceit;
 ConVar g_cvBotEcoLimit;
 Handle g_hBotMoveTo;
 Handle g_hLookupBone;
@@ -288,6 +290,7 @@ public void OnPluginStart()
 {	
 	g_bIsCompetitive = FindConVar("game_mode").IntValue == 1 && FindConVar("game_type").IntValue == 0 ? true : false;
 	g_hCvarIsAWP = FindConVar("isAWP");
+	g_hCvarIsFaceit = FindConVar("isFaceit");
 
 	HookEventEx("player_spawn", OnPlayerSpawn);
 	HookEventEx("round_prestart", OnRoundPreStart);
@@ -963,7 +966,11 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bStrategySelectionPending = HasStrategyForTeam(CS_TEAM_T);
     AssignCTDefaults();
     TrySelectStrategy();
-    if (!g_bStrategyActive)
+    if (!g_bStrategyActive && g_bStrategySelectionPending)
+    {
+        CreateTimer(0.2, Timer_SelectStrategy, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    }
+    else if (!g_bStrategyActive)
     {
         g_bStrategySelectionPending = false;
     }
@@ -3200,6 +3207,42 @@ bool IsPistolStrategyRound()
     return g_iCurrentRound == 0 || g_iCurrentRound == 12;
 }
 
+bool AreNormalStrategiesDisabledByFaceit()
+{
+    if (g_hCvarIsFaceit == null)
+    {
+        g_hCvarIsFaceit = FindConVar("isFaceit");
+    }
+
+    return g_hCvarIsFaceit != null && g_hCvarIsFaceit.IntValue == 1;
+}
+
+bool IsWeaponDropPendingForStrategyTeam(int team)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsValidClient(i) || !IsFakeClient(i) || !IsPlayerAlive(i))
+            continue;
+
+        if (team != 0 && GetClientTeam(i) != team)
+            continue;
+
+        if (g_bAWPDropQueued[i] || g_bBuyDelayed[i] || g_bIsAWPDonor[i] || g_bDonationInProgress[i])
+            return true;
+
+        if (g_bDropWeapon[i] || g_bShouldPickupDroppedGun[i] || g_bAwaitingHumanAWPDrop[i])
+            return true;
+
+        if (!PlayerHasPrimary(i) && IsValidEntity(g_iReservedDroppedPrimary[i]))
+            return true;
+
+        if (g_bHasGottenDrop[i] && !PlayerHasPrimary(i))
+            return true;
+    }
+
+    return false;
+}
+
 void ParseMapDefaults(const char[] szMap)
 {
     g_iMaxDefaults = 0;
@@ -3372,8 +3415,15 @@ void ParseMapStrategies(const char[] szMap)
 
     char szPath[PLATFORM_MAX_PATH];
     char szRoot[32];
+    bool bPistolRound = IsPistolStrategyRound();
 
-    if (IsPistolStrategyRound())
+    if (!bPistolRound && AreNormalStrategiesDisabledByFaceit())
+    {
+        PrintToServer("[STRATS] Normal strategies disabled because isFaceit is set to 1.");
+        return;
+    }
+
+    if (bPistolRound)
     {
         BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_strategies_pistol.txt");
         strcopy(szRoot, sizeof(szRoot), "pistolstrats");
@@ -3535,14 +3585,19 @@ bool ParseUtilityRequirement(const char[] szValue, int &defIndex, int &amount)
 
 public Action Timer_SelectStrategy(Handle timer, any data)
 {
-    TrySelectStrategy();
-
-    if (!g_bStrategyActive)
+    if (g_bRoundEnded || g_bStrategyActive || !g_bStrategySelectionPending)
     {
-        g_bStrategySelectionPending = false;
+        return Plugin_Stop;
     }
 
-    return Plugin_Stop;
+    TrySelectStrategy();
+
+    if (g_bStrategyActive || !g_bStrategySelectionPending)
+    {
+        return Plugin_Stop;
+    }
+
+    return Plugin_Continue;
 }
 
 void ClearActiveStrategy(bool bStopMimic)
@@ -3580,6 +3635,9 @@ void ClearActiveStrategy(bool bStopMimic)
 void TrySelectStrategy()
 {
     if (g_bStrategyActive || g_bStrategySelectionRolled || IsWarmupPeriod() || !g_bFreezetimeEnd || g_iMaxStrategies <= 0)
+        return;
+
+    if (!IsPistolStrategyRound() && IsWeaponDropPendingForStrategyTeam(CS_TEAM_T))
         return;
 
     g_bStrategySelectionRolled = true;
@@ -3628,6 +3686,8 @@ void TrySelectStrategy()
             return;
         }
     }
+
+    g_bStrategySelectionPending = false;
 }
 
 bool TryAssignStrategy(int strat)
@@ -5381,6 +5441,9 @@ int FindNearestUnreservedDroppedPrimary(int client, float fClientEyes[3], bool p
                 continue;
 
             float dist = GetVectorDistance(fClientOrigin, fPos);
+            if (dist > DROPPED_PRIMARY_PICKUP_MAX_DIST)
+                continue;
+
             if (nearest == -1 || dist < bestDist)
             {
                 nearest = weapon;
@@ -5408,7 +5471,12 @@ bool TryMovePrimarylessBotToDroppedPrimary(int client, float fClientEyes[3], boo
     if (IsAvailableDroppedPrimary(weapon, client))
     {
         GetEntPropVector(weapon, Prop_Send, "m_vecOrigin", fWeaponPos);
-        if (GetVectorLength(fWeaponPos) == 0.0 || (!pickupOverride && !IsPointVisible(fClientEyes, fWeaponPos)))
+        float fClientOrigin[3];
+        GetClientAbsOrigin(client, fClientOrigin);
+
+        if (GetVectorLength(fWeaponPos) == 0.0
+            || GetVectorDistance(fClientOrigin, fWeaponPos) > DROPPED_PRIMARY_PICKUP_MAX_DIST
+            || (!pickupOverride && !IsPointVisible(fClientEyes, fWeaponPos)))
         {
             ClearDroppedPrimaryReservation(client);
             weapon = -1;
@@ -7102,7 +7170,6 @@ void CheckAWPDonation(int team)
         return;
     }
 
-    g_bIsAWPDonor[donor] = true;
     int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
     PrintToServer("[AWP DEBUG] Evaluating donor %N (money=%d) & AWPer %N (money=%d)",
         donor, donorMoney, awper, awperMoney);
@@ -7116,6 +7183,7 @@ void CheckAWPDonation(int team)
 	        (!donorHasPrimary && donorMoney >= 5400 && awperMoney >= 3750))
 	    {
 	        donorCanDonate = true;
+	        g_bIsAWPDonor[donor] = true;
 
 	        if (IsPlayerAlive(awper) && IsPlayerAlive(donor))
 	        {
@@ -7137,6 +7205,7 @@ void CheckAWPDonation(int team)
 	        (!donorHasPrimary && donorMoney >= 5750 && awperMoney >= 3700))
 	    {
 	        donorCanDonate = true;
+	        g_bIsAWPDonor[donor] = true;
 
 	        if (IsPlayerAlive(awper) && IsPlayerAlive(donor))
 	        {
@@ -7151,6 +7220,11 @@ void CheckAWPDonation(int team)
 	        PrintToServer("[AWP DEBUG] T donor %N scheduled for delayed buy", donor);
 	    }
 	}
+
+    if (!donorCanDonate)
+    {
+        g_bIsAWPDonor[donor] = false;
+    }
 }
 
 void ResetLossBonusOnOvertimeHalftime()
