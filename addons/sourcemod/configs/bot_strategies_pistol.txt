@@ -122,6 +122,128 @@
             }
         }
     }
+    "de_anubis"
+    {
+        "A Contact"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Contact Camera Smoker"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "712.036376 -1092.031250 54.661136"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/A Contact Camera Smoker.rec"
+            }
+            "A Contact Heaven Smoker"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "759.968750 -1111.801513 96.225822"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/A Contact Heaven Smoker.rec"
+            }
+            "A Contact Regular"
+            {
+                "position" "-192.000000 -1608.000000 -9.241274"
+                "lookat" "723.244873 -1092.031250 82.721527"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/A Contact Regular.rec"
+            }
+            "A Contact Regular 2"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "397.582275 -1248.710449 79.190483"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/A Contact Regular 2.rec"
+            }
+            "A Contact Regular 3"
+            {
+                "position" "-304.000000 -1608.000000 -11.464141"
+                "lookat" "417.547851 -1254.923583 85.464813"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/A Contact Regular 3.rec"
+            }
+        }
+        "B Split"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Split Util"
+            {
+                "position" "-192.000000 -1608.000000 -9.241274"
+                "lookat" "123.271942 -1771.268188 63.157741"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Split Util.rec"
+            }
+            "B Split Regular"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "-1191.913330 -912.577697 147.379852"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Split Regular.rec"
+            }
+            "B Split Regular 2"
+            {
+                "position" "-304.000000 -1608.000000 -11.464140"
+                "lookat" "-1212.037109 -929.473693 176.068618"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Split Regular 2.rec"
+            }
+            "B Split Regular 3"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "-1168.892333 -888.811706 153.999938"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Split Regular 3.rec"
+            }
+            "B Split Regular 4"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "-1189.405273 -911.145263 137.818634"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Split Regular 4.rec"
+            }
+        }
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "35.0"
+            "minplayers" "5"
+
+            "B Rush Util"
+            {
+                "position" "-416.000000 -1608.000000 2.031250"
+                "lookat" "-1181.584960 -902.429443 145.778350"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Rush Util.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-352.000000 -1696.000000 2.031250"
+                "lookat" "-1171.035156 -891.727233 147.131912"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-304.000000 -1608.000000 -11.464140"
+                "lookat" "-900.030273 -1334.369140 43.393058"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "-240.000000 -1696.000000 2.031250"
+                "lookat" "-1197.953735 -920.659362 129.234008"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Rush Regular 3.rec"
+            }
+            "B Rush Regular 4"
+            {
+                "position" "-192.000000 -1608.000000 -9.241274"
+                "lookat" "-1226.170288 -948.540527 132.213439"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_anubis/B Rush Regular 4.rec"
+            }
+        }
+    }
     "de_dust2"
     {
         "B Rush"
