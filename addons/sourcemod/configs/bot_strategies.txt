@@ -261,6 +261,133 @@
             }
         }
     }
+    "de_cache"
+    {
+        "A Contact"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Contact Main Util"
+            {
+                "position" "3008.000000 148.000000 1613.031250"
+                "lookat" "1761.497802 26.737083 1738.442016"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Contact Main Util.rec"
+            }
+            "A Contact Main Molly"
+            {
+                "position" "3068.000000 250.000000 1615.031250"
+                "lookat" "1873.657592 -189.968750 1697.848388"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Contact Main Molly.rec"
+            }
+            "A Contact Door Smoker"
+            {
+                "position" "3027.000000 -41.000000 1613.031250"
+                "lookat" "1761.031250 -2.833862 1866.733276"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Contact Door Smoker.rec"
+            }
+            "A Contact Door Regular"
+            {
+                "position" "3009.000000 -168.000000 1615.439575"
+                "lookat" "1748.031250 331.137786 1685.167114"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Contact Door Regular.rec"
+            }
+            "A Contact Mid Lurk"
+            {
+                "position" "2954.000000 68.000000 1613.031250"
+                "lookat" "1753.031250 133.693466 1690.239624"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Contact Mid Lurk.rec"
+            }
+        }
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Rush Util"
+            {
+                "position" "3009.000000 -168.000000 1615.439575"
+                "lookat" "1507.031250 -848.853454 1730.301879"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/B Rush Util.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "2954.000000 68.000000 1613.031250"
+                "lookat" "1491.031250 -1093.473266 1708.593627"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "3008.000000 148.000000 1613.031250"
+                "lookat" "1510.535400 -1114.759277 1729.166381"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "3084.000000 127.000000 1613.031250"
+                "lookat" "1491.031250 -1048.994995 1726.383911"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/B Rush Regular 3.rec"
+            }
+            "B Rush Heaven Molly"
+            {
+                "position" "3158.000000 131.000000 1613.031250"
+                "lookat" "1491.031127 -1018.893066 1742.916381"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/B Rush Heaven Molly.rec"
+            }
+        }
+        "A Split"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Split Mid Smoker"
+            {
+                "position" "3027.000000 -41.000000 1613.031250"
+                "lookat" "1507.031250 -848.853454 1730.301879"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Split Mid Smoker.rec"
+            }
+            "A Split Left Smoker"
+            {
+                "position" "3008.000000 148.000000 1613.031250"
+                "lookat" "1749.031250 -27.338211 1716.773193"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Split Left Smoker.rec"
+            }
+            "A Split Right Smoker"
+            {
+                "position" "3068.000000 250.000000 1615.031250"
+                "lookat" "1870.996337 -179.471984 1687.090087"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Split Right Smoker.rec"
+            }
+            "A Split Main Util"
+            {
+                "position" "3009.000000 -168.000000 1615.439575"
+                "lookat" "1748.031250 344.108947 1693.236328"
+                "utility1" "43 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Split Main Util.rec"
+            }
+            "A Split Regular"
+            {
+                "position" "2954.000000 68.000000 1613.031250"
+                "lookat" "1753.031250 137.763122 1695.324462"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_cache/A Split Regular.rec"
+            }
+        }
+    }
     "de_dust2"
     {
         "B Rush"
