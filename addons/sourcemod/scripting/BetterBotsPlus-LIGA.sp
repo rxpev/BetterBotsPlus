@@ -3846,6 +3846,9 @@ bool TryAssignStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
 
 int FindBotForStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
 {
+    int selected = 0;
+    float closestDistance = 0.0;
+
     for (int i = 1; i <= MaxClients; i++)
     {
         if (used[i])
@@ -3854,30 +3857,22 @@ int FindBotForStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
         if (!IsValidClient(i) || !IsFakeClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) != g_iStrategyTeam[strat])
             continue;
 
-        bool hasUtility = true;
-
-        for (int utility = 0; utility < g_iStrategyRoleUtilityCount[strat][role]; utility++)
-        {
-            int defIndex = g_iStrategyRoleUtilityDefIndex[strat][role][utility];
-            int amount = g_iStrategyRoleUtilityAmount[strat][role][utility];
-            int heldCount = CountPlayerWeaponsByDefIndex(i, defIndex);
-
-            if (heldCount < amount)
-            {
-                PrintToServer("[STRATS] %N missing utility for role %s: defindex %d need %d have %d",
-                    i, g_szStrategyRoleName[strat][role], defIndex, amount, heldCount);
-                hasUtility = false;
-                break;
-            }
-        }
-
-        if (!hasUtility)
+        if (!DoesClientMeetStrategyUtilityRequirements(i, strat, role))
             continue;
 
-        return i;
+        float fClientOrigin[3];
+        GetClientAbsOrigin(i, fClientOrigin);
+
+        float fDistance = GetVectorDistance(fClientOrigin, g_fStrategyRolePos[strat][role]);
+
+        if (selected == 0 || fDistance < closestDistance)
+        {
+            selected = i;
+            closestDistance = fDistance;
+        }
     }
 
-    return 0;
+    return selected;
 }
 
 bool CanAssignRequiredStrategyUtility(int strat)
