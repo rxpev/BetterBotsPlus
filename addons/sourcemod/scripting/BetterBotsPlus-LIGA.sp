@@ -141,6 +141,7 @@ char g_szPeekReplay[MAX_PEEKS][128];
 int  g_iPeekTeam[MAX_PEEKS];
 int  g_iMaxPeeks = 0;
 bool g_bDoingPeek[MAXPLAYERS + 1];
+bool g_bDoingEarlyPeekMimic[MAXPLAYERS + 1];
 int  g_iCurrentPeekNum[MAXPLAYERS + 1];
 bool g_bPeekRolled[MAXPLAYERS + 1];
 bool g_bFlashDodgeActive[MAXPLAYERS + 1];
@@ -862,6 +863,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bDidInitialSwitch[i] = false;
 			g_bPeekRolled[i] = false;
             g_bDoingPeek[i] = false;
+            g_bDoingEarlyPeekMimic[i] = false;
             g_iCurrentPeekNum[i] = -1;
 			g_iTarget[i] = -1;
 			g_iPrevTarget[i] = -1;
@@ -2028,9 +2030,8 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 	else if(strcmp(szDesc, "Noise") == 0)
 	{
 		bool bIsWalking = !!GetEntProp(client, Prop_Send, "m_bIsWalking");
-		float fClientEyes[3], fNoisePosition[3];
+		float fNoisePosition[3];
 		
-		GetClientEyePosition(client, fClientEyes);
 		DHookGetParamVector(hParams, 2, fNoisePosition);
 
 		if (ShouldReleaseCTDefaultForThreatSound(client, fNoisePosition, bIsWalking))
@@ -2039,10 +2040,7 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 			PrintToServer("[DEFAULTS] %N left CT default after a nearby side/back sound.", client);
 		}
 
-		if(IsItMyChance(35.0) && IsPointVisible(fClientEyes, fNoisePosition) && LineGoesThroughSmoke(fClientEyes, fNoisePosition) && !bIsWalking)
-			DHookSetParam(hParams, 7, true);
-		
-		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
+		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client] && !IsNoiseProtectedMimic(client))
 		{
 			if (g_iDoingSmokeNum[client] != -1)
 		    {
@@ -2352,7 +2350,9 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    if (fDisToPeek < 35.0)
 			    {
 			        BotSetLookAt(client, "Use entity", fLookPos, PRIORITY_HIGH, 1.0, false, 3.0, false);
+			        ClearFlashDodgeState(client);
 			        BotMimic_PlayRecordFromFile(client, szReplayPath);
+			        g_bDoingEarlyPeekMimic[client] = true;
 			        PrintToServer("[PEEKS] Bot %d started mimic for peek #%d (%s)", client, peek, szReplayPath);
 
 			        g_bDoingPeek[client] = false;
@@ -4047,6 +4047,7 @@ void TryStartActiveStrategy()
             continue;
 
         int client = g_iStrategyRoleClient[role];
+        ClearFlashDodgeState(client);
         BMError error = BotMimic_PlayRecordFromFile(client, g_szStrategyRoleReplay[strat][role]);
 
         if (error != BM_NoError)
@@ -4656,6 +4657,14 @@ bool CanUseBotForCTDefault(int client)
         return false;
 
     return true;
+}
+
+bool IsNoiseProtectedMimic(int client)
+{
+    if (g_bDoingEarlyPeekMimic[client])
+        return true;
+
+    return g_bStrategyStarted && g_bStrategyControlled[client];
 }
 
 bool PickDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount)
@@ -5913,9 +5922,13 @@ public Action ResetAngleBlock(Handle timer, int client)
 public Action StopPeek_Callback(Handle timer, any userid)
 {
     int client = GetClientOfUserId(userid);
+    if (!client && userid >= 1 && userid <= MaxClients && IsClientInGame(userid))
+        client = userid;
+
     if (client && IsClientInGame(client))
     {
         g_bDoingPeek[client] = false;
+        g_bDoingEarlyPeekMimic[client] = false;
         g_iCurrentPeekNum[client] = -1;
     }
     return Plugin_Stop;
@@ -6584,7 +6597,18 @@ stock bool IsFlashDodgeAllowed(int client, bool bIsEnemyVisible)
 	if (g_bDoingPeek[client])
 		return false;
 
+	if (BotMimic_IsPlayerMimicing(client))
+		return false;
+
 	return true;
+}
+
+stock void ClearFlashDodgeState(int client)
+{
+	g_bFlashDodgeActive[client] = false;
+	g_bFlashDodgePopped[client] = false;
+	g_fFlashDodgeReturnTime[client] = 0.0;
+	g_fFlashRecoverLockEndTime[client] = 0.0;
 }
 
 stock bool FindThreateningFlash(int client, float fThreatPos[3])
@@ -6743,6 +6767,12 @@ stock void ApplyFlashRecoverLook(int client)
 
 stock bool HandleFlashDodge(int client, bool bIsEnemyVisible)
 {
+	if (g_bFlashDodgeActive[client] && (g_bDoingPeek[client] || BotMimic_IsPlayerMimicing(client)))
+	{
+		ClearFlashDodgeState(client);
+		return false;
+	}
+
 	if (!IsFlashDodgeAllowed(client, bIsEnemyVisible) && !g_bFlashDodgeActive[client])
 		return false;
 
