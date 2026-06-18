@@ -40,6 +40,13 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define CT_DEFAULT_THREAT_SOUND_FRONT_DOT 0.35
 #define CT_DEFAULT_THREAT_SOUND_COOLDOWN 1.0
 #define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
+#define T_POSTPLANT_ARRIVE_DISTANCE 35.0
+#define T_POSTPLANT_ASSIGN_CHANCE 70.0
+#define T_POSTPLANT_RELEASE_BOMB_TIME 10.0
+#define T_POSTPLANT_THREAT_SOUND_MAX_DIST 650.0
+#define T_POSTPLANT_THREAT_SOUND_FRONT_DOT 0.35
+#define T_POSTPLANT_THREAT_SOUND_COOLDOWN 1.0
+#define T_POSTPLANT_THREAT_SOUND_PAUSE 1.25
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -132,6 +139,23 @@ int g_iRecentCTBombDropVictimUserId;
 int g_iRecentCTBombDropAttackerUserId;
 float g_fRecentCTBombDropKillTime;
 float g_fRecentCTBombDropAttackerPos[3];
+
+//BOT T Post Plant Position Variables
+float g_fPostPlantPos[MAX_DEFAULTS][3];
+float g_fPostPlantLook[MAX_DEFAULTS][3];
+int g_iPostPlantSite[MAX_DEFAULTS];
+bool g_bPostPlantAWP[MAX_DEFAULTS];
+bool g_bPostPlantDuck[MAX_DEFAULTS];
+bool g_bPostPlantClaimed[MAX_DEFAULTS];
+char g_szPostPlantName[MAX_DEFAULTS][64];
+int g_iMaxPostPlantPositions = 0;
+int g_iTPostPlantSpot[MAXPLAYERS + 1] = {-1, ...};
+bool g_bTPostPlantAtSpot[MAXPLAYERS + 1];
+bool g_bTPostPlantRolled[MAXPLAYERS + 1];
+bool g_bTPostPlantAWPScoped[MAXPLAYERS + 1];
+float g_fLastTPostPlantThreatSound[MAXPLAYERS + 1];
+float g_fTPostPlantPauseUntil[MAXPLAYERS + 1];
+int g_iPlantedBombSite = 0;
 
 //BOT Peek Variables
 float g_fPeekPos[MAX_PEEKS][3];
@@ -349,6 +373,7 @@ public void OnMapStart()
 	ParseMapNades(g_szMap, false);
 	ParsePostPlantNades(g_szMap);
 	ParseMapDefaults(g_szMap);
+	ParseTPostPlantPositions(g_szMap);
 	ParseMapStrategies(g_szMap);
 
 	g_bIsBombScenario = IsValidEntity(FindEntityByClassname(-1, "func_bomb_target"));
@@ -807,6 +832,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_iPostPlantNadesStartIndex = 0;
 	BuildActiveNadesForRound();
 	ParseMapDefaults(g_szMap);
+	ParseTPostPlantPositions(g_szMap);
 	ParseMapStrategies(g_szMap);
 	ParseMapAngles(g_szMap);
     ParseMapPeeks(g_szMap);
@@ -831,6 +857,11 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	{
 	    g_bDefaultClaimed[i] = false;
 	}
+
+	for (int i = 0; i < g_iMaxPostPlantPositions; i++)
+	{
+	    g_bPostPlantClaimed[i] = false;
+	}
 	
 	g_bFreezetimeEnd = false;
 	g_bRoundEnded = false;
@@ -839,6 +870,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_bBombPlanted = false;
 	g_bBombExploded = false;
 	g_bCTDefaultsAssigned = false;
+	g_iPlantedBombSite = DEFAULT_SITE_UNKNOWN;
 	ClearActiveStrategy(false);
 	g_bStrategySelectionRolled = false;
 	
@@ -870,6 +902,12 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_iDoingSmokeNum[i] = -1;
 			g_iCTDefaultSpot[i] = -1;
 			g_bCTDefaultAtSpot[i] = false;
+			g_iTPostPlantSpot[i] = -1;
+			g_bTPostPlantAtSpot[i] = false;
+			g_bTPostPlantRolled[i] = false;
+			g_bTPostPlantAWPScoped[i] = false;
+			g_fLastTPostPlantThreatSound[i] = 0.0;
+			g_fTPostPlantPauseUntil[i] = 0.0;
 			g_fShootTimestamp[i] = 0.0;				
 			g_fThrowNadeTimestamp[i] = 0.0;				
 			g_fCrouchTimestamp[i] = 0.0;								
@@ -945,6 +983,7 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 		if (IsValidClient(i) && IsFakeClient(i) && BotMimic_IsPlayerMimicing(i))
 			BotMimic_StopPlayerMimic(i);
 		ClearClientCTDefault(i, false);
+		ClearClientTPostPlant(i, false);
 	}
 	
 	g_iRoundsPlayed = g_iCTScore + g_iTScore;
@@ -1137,6 +1176,8 @@ public void Timer_CancelFakePlant(Handle timer, any client)
 public void OnBombPlanted(Event event, const char[] name, bool dontBroadcast)
 {
     g_bBombPlanted = true;
+    g_iPlantedBombSite = GetPlantedBombSite(event);
+    ClearActiveStrategy(true);
     
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -1157,6 +1198,8 @@ public void OnBombPlanted(Event event, const char[] name, bool dontBroadcast)
             }
         }
     }
+
+    AssignTPostPlantPositions();
 }
 
 public void OnBombExploded(Event event, char[] name, bool dontBroadcast)
@@ -1173,6 +1216,8 @@ void BotCancelMoveTo(int client)
 
 public Action OnBombBeginDefuse(Event event, const char[] name, bool dontBroadcast) 
 {
+    ReleaseTPostPlantPositions("defuse started");
+
     DataPack pack = new DataPack();
     pack.WriteCell(event.GetInt("userid"));
     pack.WriteString(name);
@@ -2040,6 +2085,14 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 			PrintToServer("[DEFAULTS] %N left CT default after a nearby side/back sound.", client);
 		}
 
+		if (ShouldPauseTPostPlantForThreatSound(client, fNoisePosition, bIsWalking))
+		{
+			g_fTPostPlantPauseUntil[client] = GetGameTime() + T_POSTPLANT_THREAT_SOUND_PAUSE;
+			BotCancelMoveTo(client);
+			BotEquipBestWeapon(client, true);
+			PrintToServer("[POSTPLANT] %N paused postplant move after a nearby side/back sound.", client);
+		}
+
 		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client] && !IsNoiseProtectedMimic(client))
 		{
 			if (g_iDoingSmokeNum[client] != -1)
@@ -2071,6 +2124,14 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		{
 			ClearClientCTDefault(client, true);
 			PrintToServer("[DEFAULTS] %N left CT default after nearby side/back gunfire.", client);
+		}
+
+		if (ShouldPauseTPostPlantForThreatSound(client, fPos, false))
+		{
+			g_fTPostPlantPauseUntil[client] = GetGameTime() + T_POSTPLANT_THREAT_SOUND_PAUSE;
+			BotCancelMoveTo(client);
+			BotEquipBestWeapon(client, true);
+			PrintToServer("[POSTPLANT] %N paused postplant move after nearby side/back gunfire.", client);
 		}
 		
 		fPos[2] += 25.0;
@@ -2202,13 +2263,18 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			    BotMimic_StopPlayerMimic(client);
 			    g_iDoingSmokeNum[client] = -1;
 			}
+
+			if (HandleTPostPlantBot(client, bIsEnemyVisible, iButtons, fVel, iDefIndex))
+			{
+				return Plugin_Changed;
+			}
 				
 			if (IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && CanUseGrenadeWhileMovingToCTDefault(client))
 		    {
 		        g_iDoingSmokeNum[client] = GetNearestGrenade(client);
 		    }
 
-			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && g_iCTDefaultSpot[client] == -1)
+			if (g_bBombPlanted && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && g_iCTDefaultSpot[client] == -1 && g_iTPostPlantSpot[client] == -1)
 			{
 				int iPostPlantNade = GetNearestPostPlantGrenade(client);
 
@@ -2431,7 +2497,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			{
 				return Plugin_Changed;
 			}
-			
+
 			if(IsSafe(client) || g_bEveryoneDead)
 				iButtons &= ~IN_SPEED;
 				
@@ -2956,6 +3022,7 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
     }
 
     ClearClientCTDefault(victim, false);
+    ClearClientTPostPlant(victim, false);
     return Plugin_Continue; 
 }
 
@@ -4425,6 +4492,42 @@ bool ShouldReleaseCTDefaultForThreatSound(int client, float fNoisePosition[3], b
     return true;
 }
 
+bool ShouldPauseTPostPlantForThreatSound(int client, float fNoisePosition[3], bool bIsWalking)
+{
+    if (bIsWalking || g_iTPostPlantSpot[client] < 0)
+        return false;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_T)
+        return false;
+
+    float now = GetGameTime();
+    if (now - g_fLastTPostPlantThreatSound[client] < T_POSTPLANT_THREAT_SOUND_COOLDOWN)
+        return false;
+
+    float fClientOrigin[3];
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    float fToNoise[3];
+    SubtractVectors(fNoisePosition, fClientOrigin, fToNoise);
+    fToNoise[2] = 0.0;
+
+    float distance = NormalizeVector(fToNoise, fToNoise);
+    if (distance <= T_POSTPLANT_ARRIVE_DISTANCE || distance > T_POSTPLANT_THREAT_SOUND_MAX_DIST)
+        return false;
+
+    float fEyeAngles[3], fForward[3];
+    GetClientEyeAngles(client, fEyeAngles);
+    GetAngleVectors(fEyeAngles, fForward, NULL_VECTOR, NULL_VECTOR);
+    fForward[2] = 0.0;
+    NormalizeVector(fForward, fForward);
+
+    if (GetVectorDotProduct(fForward, fToNoise) > T_POSTPLANT_THREAT_SOUND_FRONT_DOT)
+        return false;
+
+    g_fLastTPostPlantThreatSound[client] = now;
+    return true;
+}
+
 bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float fVel[3])
 {
     if (!g_bFreezetimeEnd || g_bRoundEnded || IsWarmupPeriod() || g_bBombPlanted || g_iMaxDefaults <= 0)
@@ -4484,7 +4587,6 @@ bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float f
     }
 
     StopCTDefaultMovement(iButtons, fVel);
-    TeleportEntity(client, fTargetPos, NULL_VECTOR, NULL_VECTOR);
     BotLookAt(client, fLookPos);
 
     if (g_bDefaultDuck[defaultSpot])
@@ -4784,6 +4886,305 @@ void ClearClientCTDefault(int client, bool bCancelMove)
 
     g_iCTDefaultSpot[client] = -1;
     g_bCTDefaultAtSpot[client] = false;
+
+    if (bCancelMove && IsValidClient(client) && IsFakeClient(client) && IsPlayerAlive(client))
+    {
+        BotCancelMoveTo(client);
+        BotEquipBestWeapon(client, true);
+    }
+}
+
+void ParseTPostPlantPositions(const char[] szMap)
+{
+    g_iMaxPostPlantPositions = 0;
+
+    char szPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_postplant_positions.txt");
+
+    if (!FileExists(szPath))
+    {
+        PrintToServer("[POSTPLANT] Configuration file %s not found.", szPath);
+        return;
+    }
+
+    KeyValues kv = new KeyValues("PostPlantPositions");
+
+    if (!kv.ImportFromFile(szPath))
+    {
+        delete kv;
+        PrintToServer("[POSTPLANT] Unable to parse KeyValues file %s.", szPath);
+        return;
+    }
+
+    if (!kv.JumpToKey(szMap))
+    {
+        delete kv;
+        PrintToServer("[POSTPLANT] No T post-plant positions found for %s.", szMap);
+        return;
+    }
+
+    if (!kv.GotoFirstSubKey())
+    {
+        delete kv;
+        PrintToServer("[POSTPLANT] T post-plant positions not configured correctly for %s.", szMap);
+        return;
+    }
+
+    int i = 0;
+    do
+    {
+        if (i >= MAX_DEFAULTS)
+            break;
+
+        char szSite[8];
+        char szRole[16];
+        kv.GetSectionName(g_szPostPlantName[i], sizeof(g_szPostPlantName[]));
+        kv.GetVector("position", g_fPostPlantPos[i]);
+        kv.GetVector("lookat", g_fPostPlantLook[i]);
+        kv.GetString("site", szSite, sizeof(szSite), "");
+        kv.GetString("role", szRole, sizeof(szRole), "rifle");
+        g_iPostPlantSite[i] = ParseDefaultSite(szSite);
+        g_bPostPlantAWP[i] = strcmp(szRole, "awp", false) == 0 || strcmp(szRole, "awper", false) == 0;
+        g_bPostPlantDuck[i] = view_as<bool>(kv.GetNum("duck", 0));
+        g_bPostPlantClaimed[i] = false;
+        i++;
+    }
+    while (kv.GotoNextKey());
+
+    delete kv;
+    g_iMaxPostPlantPositions = i;
+    PrintToServer("[POSTPLANT] Loaded %d T post-plant positions for %s.", g_iMaxPostPlantPositions, szMap);
+}
+
+int GetPlantedBombSite(Event event)
+{
+    int plantedC4 = FindEntityByClassname(-1, "planted_c4");
+    if (IsValidEntity(plantedC4) && HasEntProp(plantedC4, Prop_Send, "m_nBombSite"))
+    {
+        int bombSite = GetEntProp(plantedC4, Prop_Send, "m_nBombSite");
+        if (bombSite == 0)
+        {
+            PrintToServer("[POSTPLANT] Resolved planted C4 as site A.");
+            return DEFAULT_SITE_A;
+        }
+
+        if (bombSite == 1)
+        {
+            PrintToServer("[POSTPLANT] Resolved planted C4 as site B.");
+            return DEFAULT_SITE_B;
+        }
+
+        PrintToServer("[POSTPLANT] Unknown planted C4 m_nBombSite value %d.", bombSite);
+    }
+
+    int site = event.GetInt("site");
+
+    if (site == 0)
+        return DEFAULT_SITE_A;
+
+    if (site == 1)
+        return DEFAULT_SITE_B;
+
+    PrintToServer("[POSTPLANT] Unable to resolve planted site from C4; bomb_planted event site value was %d.", site);
+    return DEFAULT_SITE_UNKNOWN;
+}
+
+void AssignTPostPlantPositions()
+{
+    if (g_iMaxPostPlantPositions <= 0 || g_iPlantedBombSite == 0 || g_bRoundEnded || IsWarmupPeriod())
+        return;
+
+    for (int i = 0; i < g_iMaxPostPlantPositions; i++)
+    {
+        g_bPostPlantClaimed[i] = false;
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        g_iTPostPlantSpot[i] = -1;
+        g_bTPostPlantAtSpot[i] = false;
+        g_bTPostPlantAWPScoped[i] = false;
+
+        if (!CanUseBotForTPostPlant(i))
+            continue;
+
+        bool bHasAWP = ClientHasPrimaryAWP(i);
+        g_bTPostPlantRolled[i] = true;
+
+        if (!IsItMyChance(T_POSTPLANT_ASSIGN_CHANCE))
+            continue;
+
+        int spot = PickRandomTPostPlantSpot(g_iPlantedBombSite, bHasAWP);
+        if (spot == -1)
+            continue;
+
+        g_bPostPlantClaimed[spot] = true;
+        g_iTPostPlantSpot[i] = spot;
+        g_bTPostPlantAtSpot[i] = false;
+        BotMoveTo(i, g_fPostPlantPos[spot], FASTEST_ROUTE);
+        PrintToServer("[POSTPLANT] Assigned %N to %s.", i, g_szPostPlantName[spot]);
+    }
+}
+
+int PickRandomTPostPlantSpot(int site, bool bAWP)
+{
+    int spots[MAX_DEFAULTS];
+    int spotCount = 0;
+
+    for (int i = 0; i < g_iMaxPostPlantPositions; i++)
+    {
+        if (g_bPostPlantClaimed[i])
+            continue;
+
+        if (g_iPostPlantSite[i] != site || g_bPostPlantAWP[i] != bAWP)
+            continue;
+
+        spots[spotCount++] = i;
+    }
+
+    if (spotCount == 0)
+        return -1;
+
+    return spots[GetRandomInt(0, spotCount - 1)];
+}
+
+bool CanUseBotForTPostPlant(int client)
+{
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_T)
+        return false;
+
+    return true;
+}
+
+void CancelLowerPriorityTPostPlantActions(int client)
+{
+    g_iHoldingAngleNum[client] = -1;
+    g_bDoingPeek[client] = false;
+    g_bDoingEarlyPeekMimic[client] = false;
+    g_iCurrentPeekNum[client] = -1;
+
+    if (BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client])
+    {
+        BotMimic_StopPlayerMimic(client);
+    }
+}
+
+bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float fVel[3], int iDefIndex)
+{
+    if (!g_bBombPlanted || g_bRoundEnded || IsWarmupPeriod() || g_iMaxPostPlantPositions <= 0)
+        return false;
+
+    int spot = g_iTPostPlantSpot[client];
+    if (spot < 0 || spot >= g_iMaxPostPlantPositions)
+        return false;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_T)
+    {
+        ClearClientTPostPlant(client, false);
+        return false;
+    }
+
+    if (g_fTimeLeft > 0.0 && g_fTimeLeft <= T_POSTPLANT_RELEASE_BOMB_TIME)
+    {
+        ReleaseTPostPlantPositions("low bomb time");
+        return false;
+    }
+
+    if (GetGameTime() < g_fTPostPlantPauseUntil[client])
+        return false;
+
+    if (bIsEnemyVisible)
+    {
+        return false;
+    }
+
+    if (g_iHoldingAngleNum[client] != -1 || g_bDoingPeek[client])
+    {
+        CancelLowerPriorityTPostPlantActions(client);
+    }
+
+    float fTargetPos[3], fLookPos[3];
+    Array_Copy(g_fPostPlantPos[spot], fTargetPos, 3);
+    Array_Copy(g_fPostPlantLook[spot], fLookPos, 3);
+
+    float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
+    bool bAtPostPlantSpot = fDistance <= T_POSTPLANT_ARRIVE_DISTANCE;
+    bool bBlockingMimicInProgress = BotMimic_IsPlayerMimicing(client) && g_iDoingSmokeNum[client] == -1 && !g_bThrowGrenade[client];
+    if (bBlockingMimicInProgress)
+    {
+        CancelLowerPriorityTPostPlantActions(client);
+    }
+
+    if (g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client])
+        return false;
+
+    if (!bAtPostPlantSpot)
+    {
+        g_bTPostPlantAtSpot[client] = false;
+        BotMoveTo(client, fTargetPos, FASTEST_ROUTE);
+        return true;
+    }
+
+    if (!g_bTPostPlantAtSpot[client])
+    {
+        BotEquipBestWeapon(client, true);
+        g_bTPostPlantAtSpot[client] = true;
+        g_bTPostPlantAWPScoped[client] = false;
+        g_bDidInitialSwitch[client] = true;
+        PrintToServer("[POSTPLANT] %N is holding %s.", client, g_szPostPlantName[spot]);
+    }
+
+    StopCTDefaultMovement(iButtons, fVel);
+    BotLookAt(client, fLookPos);
+
+    if (g_bPostPlantDuck[spot])
+        iButtons |= IN_DUCK;
+
+    if (g_bPostPlantAWP[spot] && !g_bTPostPlantAWPScoped[client] && iDefIndex == 9 && HasEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel"))
+    {
+        int zoomLevel = GetEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel");
+        if (zoomLevel == 0)
+        {
+            iButtons |= IN_ATTACK2;
+            g_bTPostPlantAWPScoped[client] = true;
+        }
+        else
+        {
+            g_bTPostPlantAWPScoped[client] = true;
+        }
+    }
+
+    return true;
+}
+
+void ReleaseTPostPlantPositions(const char[] reason)
+{
+    bool bReleased = false;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (g_iTPostPlantSpot[i] == -1)
+            continue;
+
+        ClearClientTPostPlant(i, true);
+        bReleased = true;
+    }
+
+    if (bReleased)
+        PrintToServer("[POSTPLANT] Released T post-plant positions: %s.", reason);
+}
+
+void ClearClientTPostPlant(int client, bool bCancelMove)
+{
+    int spot = g_iTPostPlantSpot[client];
+    if (spot >= 0 && spot < g_iMaxPostPlantPositions)
+        g_bPostPlantClaimed[spot] = false;
+
+    g_iTPostPlantSpot[client] = -1;
+    g_bTPostPlantAtSpot[client] = false;
+    g_bTPostPlantAWPScoped[client] = false;
+    g_fLastTPostPlantThreatSound[client] = 0.0;
+    g_fTPostPlantPauseUntil[client] = 0.0;
 
     if (bCancelMove && IsValidClient(client) && IsFakeClient(client) && IsPlayerAlive(client))
     {
