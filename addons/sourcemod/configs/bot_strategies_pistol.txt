@@ -485,6 +485,126 @@
             }
         }
     }
+    "de_inferno"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "35.0"
+            "minplayers" "5"
+
+            "B Rush Util"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1293.078857 132.031250 0.657031"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/B Rush Util.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1675.619995 351.695007 -62.209159"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1202.031250 241.157287 -6.445601"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "-1657.229980 419.576995 -63.310935"
+                "lookat" "-1657.229980 419.576995 -63.310935"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/B Rush Regular 3.rec"
+            }
+            "B Rush Regular 4"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1207.692382 132.031250 3.163786"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/B Rush Regular 4.rec"
+            }
+        }
+        "Apps Pop"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "Apps Pop Util"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1364.945312 -191.968719 14.871680"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/Apps Pop Util.rec"
+            }
+            "Apps Pop Regular"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1432.031250 -216.268920 -4.065160"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/Apps Pop Regular.rec"
+            }
+            "Apps Pop Regular 2"
+            {
+                "position" "-1657.229980 419.576995 -63.310935"
+                "lookat" "-1384.532592 -191.968780 10.871707"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/Apps Pop Regular 2.rec"
+            }
+            "Apps Pop Regular 3"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1360.051757 -191.968750 19.053079"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/Apps Pop Regular 3.rec"
+            }
+            "Apps Pop Lurk"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1432.031250 -199.773681 -5.682574"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/Apps Pop Lurk.rec"
+            }
+        }
+        "A Exec"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Exec Util"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1364.945312 -191.968719 14.871680"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/A Exec Util.rec"
+            }
+            "A Exec Regular"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1426.730712 -59.968780 25.582380"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/A Exec Regular.rec"
+            }
+            "A Exec Regular 2"
+            {
+                "position" "-1657.229980 419.576995 -63.310935"
+                "lookat" "-1371.455932 -191.968780 19.225769"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/A Exec Regular 2.rec"
+            }
+            "A Exec Regular 3"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1441.777099 -217.968750 17.185300"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/A Exec Regular 3.rec"
+            }
+            "A Exec Apps Lurk"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1440.184448 -217.968750 8.633286"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_inferno/A Exec Apps Lurk.rec"
+            }
+        }
+    }
     "de_mirage"
     {
         "B Rush"
