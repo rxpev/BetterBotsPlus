@@ -515,6 +515,141 @@
             }
         }
     }
+    "de_inferno"
+    {
+        "A Short Wrap"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Short Apps Util"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1435.556030 -217.968750 -1.937754"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Short Apps Util.rec"
+            }
+            "A Short Regular"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1306.047119 -219.968750 47.037029"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Short Regular.rec"
+            }
+            "A Short Brackets Smoker"
+            {
+                "position" "-1657.229980 419.576995 -63.310935"
+                "lookat" "-1381.457763 -191.968780 25.351097"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Short Brackets Smoker.rec"
+            }
+            "A Short Pit Molly"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1361.782714 -191.968750 22.480123"
+                "utility1" "43 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Short Pit Molly.rec"
+            }
+            "A Short Banana HE"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1219.935424 132.031250 23.311107"
+                "utility1" "44 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Short Banana HE.rec"
+            }
+        }
+        "A Split"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Split Library Smoker"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1432.031250 -193.033203 14.164657"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Split Library Smoker.rec"
+            }
+            "A Split Long Smoker"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1310.169799 -219.968750 43.444808"
+                "utility1" "45 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Split Long Smoker.rec"
+            }
+            "A Split Regular"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1371.646728 -191.968750 27.063833"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Split Regular.rec"
+            }
+            "A Split Long Flasher"
+            {
+                "position" "-1708.000000 674.000000 -49.402091"
+                "lookat" "-1396.292236 -191.968750 9.160295"
+                "utility1" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Split Long Flasher.rec"
+            }
+            "A Split Banana Molly"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1219.573852 132.031250 13.103144"
+                "utility1" "46 1"
+                "utility2" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/A Split Banana Molly.rec"
+            }
+        }
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Rush CT Smoker"
+            {
+                "position" "-1507.000000 674.000000 -45.954971"
+                "lookat" "-1349.689941 132.031250 12.162508"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/B Rush CT Smoker.rec"
+            }
+            "B Rush Coffins Smoker"
+            {
+                "position" "-1531.000000 544.000000 -63.342861"
+                "lookat" "-1297.965209 132.031250 16.921134"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/B Rush Coffins Smoker.rec"
+            }
+            "B Rush Banana Molly"
+            {
+                "position" "-1520.060058 430.890991 -65.584381"
+                "lookat" "-1214.297363 132.031250 18.113710"
+                "utility1" "43 1"
+                "utility2" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/B Rush Banana Molly.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-1662.180053 288.761993 -63.215911"
+                "lookat" "-1202.031250 233.608612 2.546061"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-1675.619995 351.695007 -62.209159"
+                "lookat" "-1202.031250 213.010650 3.458851"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_inferno/B Rush Regular 2.rec"
+            }
+        }
+    }
     "de_mirage"
     {
         "B Rush"
