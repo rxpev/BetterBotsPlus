@@ -845,4 +845,128 @@
             }
         }
     }
+    "de_overpass"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "35.0"
+            "minplayers" "5"
+
+            "B Rush Site Smoker"
+            {
+                "position" "-1459.000000 -3262.000000 294.605773"
+                "lookat" "-52.549682 -1840.031372 202.858612"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Rush Site Smoker.rec"
+            }
+            "B Rush Heaven Smoker"
+            {
+                "position" "-1385.000000 -3401.000000 298.516998"
+                "lookat" "-403.785034 -1840.031372 206.407775"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Rush Heaven Smoker.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-1499.000000 -3126.000000 290.888916"
+                "lookat" "-276.031250 -1845.096679 178.540756"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-1271.000000 -3262.000000 287.828460"
+                "lookat" "-402.830078 -1840.031250 185.929183"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "-1387.000000 -3342.000000 294.637634"
+                "lookat" "-414.196960 -1840.031250 201.035720"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Rush Regular 3.rec"
+            }
+        }
+        "B Contact"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Contact Bridge Smoker"
+            {
+                "position" "-1459.000000 -3262.000000 294.605773"
+                "lookat" "-309.164550 -1840.031250 206.119598"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Contact Bridge Smoker.rec"
+            }
+            "B Contact Site Smoker"
+            {
+                "position" "-1395.000000 -3190.000000 289.337799"
+                "lookat" "-281.459960 -1840.031250 201.467208"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Contact Site Smoker.rec"
+            }
+            "B Contact Regular"
+            {
+                "position" "-1499.000000 -3126.000000 290.888916"
+                "lookat" "-276.031250 -1854.052246 175.441802"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Contact Regular.rec"
+            }
+            "B Contact Regular 2"
+            {
+                "position" "-1271.000000 -3262.000000 287.828460"
+                "lookat" "-409.171264 -1840.031250 200.451431"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Contact Regular 2.rec"
+            }
+            "B Contact Regular 3"
+            {
+                "position" "-1387.000000 -3342.000000 294.637634"
+                "lookat" "-389.412414 -1840.031250 196.020309"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/B Contact Regular 3.rec"
+            }
+        }
+        "A Long Push"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Long Util"
+            {
+                "position" "-1459.000000 -3262.000000 294.605773"
+                "lookat" "-716.096557 -2064.031250 323.653503"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/A Long Util.rec"
+            }
+            "A Long Regular"
+            {
+                "position" "-1395.000000 -3190.000000 289.337799"
+                "lookat" "-723.444641 -2064.031250 294.213226"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/A Long Regular.rec"
+            }
+            "A Long Regular 2"
+            {
+                "position" "-1499.000000 -3126.000000 290.888916"
+                "lookat" "-659.604980 -2072.031250 302.676208"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/A Long Regular 2.rec"
+            }
+            "A Long Regular 3"
+            {
+                "position" "-1311.000000 -3334.000000 294.520111"
+                "lookat" "-750.858947 -2064.031250 311.015014"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/A Long Regular 3.rec"
+            }
+            "A Long Regular 4"
+            {
+                "position" "-1387.000000 -3342.000000 294.637634"
+                "lookat" "-726.424926 -2064.031250 310.009552"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_overpass/A Long Regular 4.rec"
+            }
+        }
+    }
 }
