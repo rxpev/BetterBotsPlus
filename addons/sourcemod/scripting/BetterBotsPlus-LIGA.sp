@@ -41,7 +41,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define CT_DEFAULT_THREAT_SOUND_COOLDOWN 1.0
 #define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
 #define T_POSTPLANT_ARRIVE_DISTANCE 35.0
-#define T_POSTPLANT_ASSIGN_CHANCE 70.0
+#define T_POSTPLANT_ASSIGN_CHANCE 75.0
 #define T_POSTPLANT_RELEASE_BOMB_TIME 10.0
 #define T_POSTPLANT_THREAT_SOUND_MAX_DIST 650.0
 #define T_POSTPLANT_THREAT_SOUND_FRONT_DOT 0.35
@@ -5090,8 +5090,20 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
         return false;
     }
 
+    float fTargetPos[3], fLookPos[3];
+    Array_Copy(g_fPostPlantPos[spot], fTargetPos, 3);
+    Array_Copy(g_fPostPlantLook[spot], fLookPos, 3);
+
+    float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
+    bool bAtPostPlantSpot = fDistance <= T_POSTPLANT_ARRIVE_DISTANCE;
+
     if (GetGameTime() < g_fTPostPlantPauseUntil[client])
-        return false;
+    {
+        if (bAtPostPlantSpot)
+            HoldTPostPlantSpot(client, spot, fLookPos, iButtons, fVel, iDefIndex);
+
+        return bAtPostPlantSpot;
+    }
 
     if (bIsEnemyVisible)
     {
@@ -5103,12 +5115,6 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
         CancelLowerPriorityTPostPlantActions(client);
     }
 
-    float fTargetPos[3], fLookPos[3];
-    Array_Copy(g_fPostPlantPos[spot], fTargetPos, 3);
-    Array_Copy(g_fPostPlantLook[spot], fLookPos, 3);
-
-    float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
-    bool bAtPostPlantSpot = fDistance <= T_POSTPLANT_ARRIVE_DISTANCE;
     bool bBlockingMimicInProgress = BotMimic_IsPlayerMimicing(client) && g_iDoingSmokeNum[client] == -1 && !g_bThrowGrenade[client];
     if (bBlockingMimicInProgress)
     {
@@ -5116,7 +5122,16 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
     }
 
     if (g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client])
-        return false;
+    {
+        if (bAtPostPlantSpot)
+        {
+            CancelScriptedGrenadeAction(client);
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     if (!bAtPostPlantSpot)
     {
@@ -5125,6 +5140,13 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
         return true;
     }
 
+    HoldTPostPlantSpot(client, spot, fLookPos, iButtons, fVel, iDefIndex);
+
+    return true;
+}
+
+void HoldTPostPlantSpot(int client, int spot, float fLookPos[3], int &iButtons, float fVel[3], int iDefIndex)
+{
     if (!g_bTPostPlantAtSpot[client])
     {
         BotEquipBestWeapon(client, true);
@@ -5134,7 +5156,7 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
         PrintToServer("[POSTPLANT] %N is holding %s.", client, g_szPostPlantName[spot]);
     }
 
-    StopCTDefaultMovement(iButtons, fVel);
+    StopTPostPlantMovement(iButtons, fVel);
     BotLookAt(client, fLookPos);
 
     if (g_bPostPlantDuck[spot])
@@ -5153,8 +5175,11 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
             g_bTPostPlantAWPScoped[client] = true;
         }
     }
+}
 
-    return true;
+void StopTPostPlantMovement(int &iButtons, float fVel[3])
+{
+    StopCTDefaultMovement(iButtons, fVel);
 }
 
 void ReleaseTPostPlantPositions(const char[] reason)
