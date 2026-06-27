@@ -34,6 +34,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FLASH_RECOVER_LOCK_TIME 0.35
 #define FAKE_OBJECTIVE_ENEMY_RANGE 1250.0
 #define CT_DEFAULT_ARRIVE_DISTANCE 35.0
+#define CT_DEFAULT_ASSIGN_CHANCE 70.0
 #define CT_DEFAULT_BOMB_CALLOUT_CHANCE 75.0
 #define CT_DEFAULT_BOMB_CALLOUT_COOLDOWN 1.5
 #define CT_DEFAULT_THREAT_SOUND_MAX_DIST 900.0
@@ -4654,7 +4655,7 @@ void AssignCTDefaults()
 {
     g_bCTDefaultsAssigned = true;
 
-    if (g_iMaxDefaults <= 0 || g_bRoundEnded || g_bBombPlanted || !IsItMyChance(50.0))
+    if (g_iMaxDefaults <= 0 || g_bRoundEnded || g_bBombPlanted || !IsItMyChance(CT_DEFAULT_ASSIGN_CHANCE))
         return;
 
     bool used[MAXPLAYERS + 1];
