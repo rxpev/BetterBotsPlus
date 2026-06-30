@@ -41,13 +41,15 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define CT_DEFAULT_THREAT_SOUND_FRONT_DOT 0.35
 #define CT_DEFAULT_THREAT_SOUND_COOLDOWN 1.0
 #define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
-#define T_POSTPLANT_ARRIVE_DISTANCE 35.0
+#define T_POSTPLANT_ARRIVE_DISTANCE 16.0
 #define T_POSTPLANT_ASSIGN_CHANCE 75.0
 #define T_POSTPLANT_RELEASE_BOMB_TIME 10.0
 #define T_POSTPLANT_THREAT_SOUND_MAX_DIST 650.0
 #define T_POSTPLANT_THREAT_SOUND_FRONT_DOT 0.35
 #define T_POSTPLANT_THREAT_SOUND_COOLDOWN 1.0
 #define T_POSTPLANT_THREAT_SOUND_PAUSE 1.25
+#define T_POSTPLANT_LOOK_DURATION 0.25
+#define T_POSTPLANT_LOOK_TOLERANCE 1.0
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -5108,6 +5110,8 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
 
     if (bIsEnemyVisible)
     {
+        ClearClientTPostPlant(client, true);
+        PrintToServer("[POSTPLANT] %N left post-plant position after enemy sighting.", client);
         return false;
     }
 
@@ -5150,6 +5154,7 @@ void HoldTPostPlantSpot(int client, int spot, float fLookPos[3], int &iButtons, 
 {
     if (!g_bTPostPlantAtSpot[client])
     {
+        BotCancelMoveTo(client);
         BotEquipBestWeapon(client, true);
         g_bTPostPlantAtSpot[client] = true;
         g_bTPostPlantAWPScoped[client] = false;
@@ -5159,21 +5164,27 @@ void HoldTPostPlantSpot(int client, int spot, float fLookPos[3], int &iButtons, 
 
     StopTPostPlantMovement(iButtons, fVel);
     BotLookAt(client, fLookPos);
+    BotSetLookAt(client, "Post-plant hold", fLookPos, PRIORITY_UNINTERRUPTABLE, T_POSTPLANT_LOOK_DURATION, false, T_POSTPLANT_LOOK_TOLERANCE, false);
 
     if (g_bPostPlantDuck[spot])
         iButtons |= IN_DUCK;
 
-    if (g_bPostPlantAWP[spot] && !g_bTPostPlantAWPScoped[client] && iDefIndex == 9 && HasEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel"))
+    if (g_bPostPlantAWP[spot])
     {
-        int zoomLevel = GetEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel");
-        if (zoomLevel == 0)
+        iButtons &= ~IN_ATTACK2;
+
+        if (!g_bTPostPlantAWPScoped[client] && iDefIndex == 9 && HasEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel"))
         {
-            iButtons |= IN_ATTACK2;
-            g_bTPostPlantAWPScoped[client] = true;
-        }
-        else
-        {
-            g_bTPostPlantAWPScoped[client] = true;
+            int zoomLevel = GetEntProp(g_iActiveWeapon[client], Prop_Send, "m_zoomLevel");
+            if (zoomLevel == 0)
+            {
+                iButtons |= IN_ATTACK2;
+                g_bTPostPlantAWPScoped[client] = true;
+            }
+            else
+            {
+                g_bTPostPlantAWPScoped[client] = true;
+            }
         }
     }
 }
@@ -7162,6 +7173,13 @@ public void OnBotTakeDamagePost(int victim, int attacker, int inflictor, float d
 		ClearClientCTDefault(victim, true);
 		SnapBotToNearestEnemy(victim);
 		PrintToServer("[DEFAULTS] Bot %d took damage (%.1f) - leaving CT default", victim, damage);
+	}
+
+	if (g_iTPostPlantSpot[victim] != -1)
+	{
+		ClearClientTPostPlant(victim, true);
+		SnapBotToNearestEnemy(victim);
+		PrintToServer("[POSTPLANT] Bot %d took damage (%.1f) - leaving post-plant position", victim, damage);
 	}
 
 	if (!BotMimic_IsPlayerMimicing(victim))
