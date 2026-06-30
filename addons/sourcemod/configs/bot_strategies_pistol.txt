@@ -969,4 +969,126 @@
             }
         }
     }
+    "de_train"
+    {
+        "B Rush"
+        {
+            "team" "T"
+            "chance" "35.0"
+            "minplayers" "5"
+
+            "B Rush Site Util"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-187.631591 1606.885620 -169.345886"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/B Rush Site Util.rec"
+            }
+            "B Rush Con Smoker"
+            {
+                "position" "-2018.000000 1440.000000 -191.968750"
+                "lookat" "-403.785034 -1840.031372 206.407775"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/B Rush Con Smoker.rec"
+            }
+            "B Rush Regular"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-554.577514 1227.494262 -161.173065"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/B Rush Regular.rec"
+            }
+            "B Rush Regular 2"
+            {
+                "position" "-2014.000000 1216.000000 -191.968750"
+                "lookat" "-539.031250 1368.230224 -164.742462"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/B Rush Regular 2.rec"
+            }
+            "B Rush Regular 3"
+            {
+                "position" "-2020.000000 1358.000000 -191.968750"
+                "lookat" "-539.031372 1250.529785 -153.502410"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/B Rush Regular 3.rec"
+            }
+        }
+        "A Split"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Split Util"
+            {
+                "position" "-2018.000000 1440.000000 -191.968750"
+                "lookat" "-317.278198 1426.551757 -162.227294"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Split Util.rec"
+            }
+            "A Split Popdog Regular"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-856.031250 1229.076049 -164.524780"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Split Popdog Regular.rec"
+            }
+            "A Split Popdog Regular 2"
+            {
+                "position" "-2014.000000 1216.000000 -191.968750"
+                "lookat" "-539.031250 1380.675903 -139.060012"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Split Popdog Regular 2.rec"
+            }
+            "A Split Main Regular"
+            {
+                "position" "-2020.000000 1358.000000 -191.968750"
+                "lookat" "-554.243652 1243.395385 -159.455017"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Split Main Regular.rec"
+            }
+            "A Split Ivy Regular"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-167.725341 1609.646118 -172.816558"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Split Ivy Regular.rec"
+            }
+        }
+        "A Ivy Rush"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "A Ivy Rush Util"
+            {
+                "position" "-2018.000000 1440.000000 -191.968750"
+                "lookat" "-317.278198 1426.551757 -162.227294"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Ivy Rush Util.rec"
+            }
+            "A Ivy Rush Regular"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-167.468017 1609.681762 -167.559814"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Ivy Rush Regular.rec"
+            }
+            "A Ivy Rush Regular 2"
+            {
+                "position" "-2014.000000 1216.000000 -191.968750"
+                "lookat" "1551.968750 1693.640869 -132.062866"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Ivy Rush Regular 2.rec"
+            }
+            "A Ivy Rush Regular 3"
+            {
+                "position" "-2020.000000 1358.000000 -191.968750"
+                "lookat" "1551.968750 1595.562988 -145.650787"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Ivy Rush Regular 3.rec"
+            }
+            "A Ivy Rush Regular 4"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-317.489624 1430.581787 -156.721420"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_train/A Ivy Rush Regular 4.rec"
+            }
+        }
+    }
 }
