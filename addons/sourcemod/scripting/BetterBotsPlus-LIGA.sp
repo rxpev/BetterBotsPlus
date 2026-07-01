@@ -47,7 +47,6 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define T_POSTPLANT_THREAT_SOUND_MAX_DIST 650.0
 #define T_POSTPLANT_THREAT_SOUND_FRONT_DOT 0.35
 #define T_POSTPLANT_THREAT_SOUND_COOLDOWN 1.0
-#define T_POSTPLANT_THREAT_SOUND_PAUSE 1.25
 #define T_POSTPLANT_LOOK_DURATION 0.25
 #define T_POSTPLANT_LOOK_TOLERANCE 1.0
 
@@ -157,7 +156,6 @@ bool g_bTPostPlantAtSpot[MAXPLAYERS + 1];
 bool g_bTPostPlantRolled[MAXPLAYERS + 1];
 bool g_bTPostPlantAWPScoped[MAXPLAYERS + 1];
 float g_fLastTPostPlantThreatSound[MAXPLAYERS + 1];
-float g_fTPostPlantPauseUntil[MAXPLAYERS + 1];
 int g_iPlantedBombSite = 0;
 
 //BOT Peek Variables
@@ -910,7 +908,6 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_bTPostPlantRolled[i] = false;
 			g_bTPostPlantAWPScoped[i] = false;
 			g_fLastTPostPlantThreatSound[i] = 0.0;
-			g_fTPostPlantPauseUntil[i] = 0.0;
 			g_fShootTimestamp[i] = 0.0;				
 			g_fThrowNadeTimestamp[i] = 0.0;				
 			g_fCrouchTimestamp[i] = 0.0;								
@@ -2088,12 +2085,10 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 			PrintToServer("[DEFAULTS] %N left CT default after a nearby side/back sound.", client);
 		}
 
-		if (ShouldPauseTPostPlantForThreatSound(client, fNoisePosition, bIsWalking))
+		if (ShouldReleaseTPostPlantForThreatSound(client, fNoisePosition, bIsWalking))
 		{
-			g_fTPostPlantPauseUntil[client] = GetGameTime() + T_POSTPLANT_THREAT_SOUND_PAUSE;
-			BotCancelMoveTo(client);
-			BotEquipBestWeapon(client, true);
-			PrintToServer("[POSTPLANT] %N paused postplant move after a nearby side/back sound.", client);
+			ClearClientTPostPlant(client, true);
+			PrintToServer("[POSTPLANT] %N left postplant after a nearby side/back sound.", client);
 		}
 
 		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client] && !IsNoiseProtectedMimic(client))
@@ -2129,12 +2124,10 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 			PrintToServer("[DEFAULTS] %N left CT default after nearby side/back gunfire.", client);
 		}
 
-		if (ShouldPauseTPostPlantForThreatSound(client, fPos, false))
+		if (ShouldReleaseTPostPlantForThreatSound(client, fPos, false))
 		{
-			g_fTPostPlantPauseUntil[client] = GetGameTime() + T_POSTPLANT_THREAT_SOUND_PAUSE;
-			BotCancelMoveTo(client);
-			BotEquipBestWeapon(client, true);
-			PrintToServer("[POSTPLANT] %N paused postplant move after nearby side/back gunfire.", client);
+			ClearClientTPostPlant(client, true);
+			PrintToServer("[POSTPLANT] %N left postplant after nearby side/back gunfire.", client);
 		}
 		
 		fPos[2] += 25.0;
@@ -4495,7 +4488,7 @@ bool ShouldReleaseCTDefaultForThreatSound(int client, float fNoisePosition[3], b
     return true;
 }
 
-bool ShouldPauseTPostPlantForThreatSound(int client, float fNoisePosition[3], bool bIsWalking)
+bool ShouldReleaseTPostPlantForThreatSound(int client, float fNoisePosition[3], bool bIsWalking)
 {
     if (bIsWalking || g_iTPostPlantSpot[client] < 0)
         return false;
@@ -5017,7 +5010,7 @@ void AssignTPostPlantPositions()
         if (!IsItMyChance(T_POSTPLANT_ASSIGN_CHANCE))
             continue;
 
-        int spot = PickRandomTPostPlantSpot(g_iPlantedBombSite, bHasAWP);
+        int spot = PickNearestTPostPlantSpot(i, g_iPlantedBombSite, bHasAWP);
         if (spot == -1)
             continue;
 
@@ -5029,10 +5022,13 @@ void AssignTPostPlantPositions()
     }
 }
 
-int PickRandomTPostPlantSpot(int site, bool bAWP)
+int PickNearestTPostPlantSpot(int client, int site, bool bAWP)
 {
-    int spots[MAX_DEFAULTS];
-    int spotCount = 0;
+    float fClientOrigin[3];
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    int nearestSpot = -1;
+    float nearestDistance = 99999999.0;
 
     for (int i = 0; i < g_iMaxPostPlantPositions; i++)
     {
@@ -5042,13 +5038,15 @@ int PickRandomTPostPlantSpot(int site, bool bAWP)
         if (g_iPostPlantSite[i] != site || g_bPostPlantAWP[i] != bAWP)
             continue;
 
-        spots[spotCount++] = i;
+        float distance = GetVectorDistance(fClientOrigin, g_fPostPlantPos[i]);
+        if (nearestSpot == -1 || distance < nearestDistance)
+        {
+            nearestSpot = i;
+            nearestDistance = distance;
+        }
     }
 
-    if (spotCount == 0)
-        return -1;
-
-    return spots[GetRandomInt(0, spotCount - 1)];
+    return nearestSpot;
 }
 
 bool CanUseBotForTPostPlant(int client)
@@ -5100,15 +5098,7 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
     float fDistance = GetVectorDistance(g_fBotOrigin[client], fTargetPos);
     bool bAtPostPlantSpot = fDistance <= T_POSTPLANT_ARRIVE_DISTANCE;
 
-    if (GetGameTime() < g_fTPostPlantPauseUntil[client])
-    {
-        if (bAtPostPlantSpot)
-            HoldTPostPlantSpot(client, spot, fLookPos, iButtons, fVel, iDefIndex);
-
-        return bAtPostPlantSpot;
-    }
-
-    if (bIsEnemyVisible)
+    if (HasFreshTPostPlantEnemySighting(client, bIsEnemyVisible))
     {
         ClearClientTPostPlant(client, true);
         PrintToServer("[POSTPLANT] %N left post-plant position after enemy sighting.", client);
@@ -5148,6 +5138,23 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
     HoldTPostPlantSpot(client, spot, fLookPos, iButtons, fVel, iDefIndex);
 
     return true;
+}
+
+bool HasFreshTPostPlantEnemySighting(int client, bool bIsEnemyVisible)
+{
+    if (!bIsEnemyVisible)
+        return false;
+
+    int enemy = BotGetEnemy(client);
+    if (!IsValidClient(enemy) || !IsPlayerAlive(enemy) || GetClientTeam(enemy) == GetClientTeam(client))
+        return false;
+
+    float fEnemyEyes[3], fEnemyBody[3];
+    GetClientEyePosition(enemy, fEnemyEyes);
+    GetClientAbsOrigin(enemy, fEnemyBody);
+    fEnemyBody[2] += 48.0;
+
+    return BotIsVisible(client, fEnemyEyes, true, -1) || BotIsVisible(client, fEnemyBody, true, -1);
 }
 
 void HoldTPostPlantSpot(int client, int spot, float fLookPos[3], int &iButtons, float fVel[3], int iDefIndex)
@@ -5221,7 +5228,6 @@ void ClearClientTPostPlant(int client, bool bCancelMove)
     g_bTPostPlantAtSpot[client] = false;
     g_bTPostPlantAWPScoped[client] = false;
     g_fLastTPostPlantThreatSound[client] = 0.0;
-    g_fTPostPlantPauseUntil[client] = 0.0;
 
     if (bCancelMove && IsValidClient(client) && IsFakeClient(client) && IsPlayerAlive(client))
     {
