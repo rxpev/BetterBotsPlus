@@ -1032,4 +1032,139 @@
             }
         }
     }
+    "de_train"
+    {
+        "A Ivy Split"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Ivy Split Ivy Smoke"
+            {
+                "position" "-2018.000000 1440.000000 -191.968750"
+                "lookat" "42.549316 1456.503295 -140.935928"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Ivy Split Ivy Smoke.rec"
+            }
+            "A Ivy Split Ivy Flasher"
+            {
+                "position" "-2020.000000 1358.000000 -191.968750"
+                "lookat" "1551.968505 1604.054321 -139.606292"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Ivy Split Ivy Flasher.rec"
+            }
+            "A Ivy Split Regular"
+            {
+                "position" "-2020.000000 1296.000000 -191.968750"
+                "lookat" "1551.968505 1616.402587 -121.450126"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Ivy Split Regular.rec"
+            }
+            "A Ivy Split Flasher"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-194.233520 1605.970092 -156.601303"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Ivy Split Flasher.rec"
+            }
+            "A Ivy Split Molly"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-555.267456 1228.973632 -164.722564"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "utility3" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Ivy Split Molly.rec"
+            }
+        }
+        "B Execute"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Exec Upper Entry"
+            {
+                "position" "-2018.000000 1440.000000 -191.968750"
+                "lookat" "-864.031250 1232.776123 -163.137908"
+                "utility1" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/B Exec Upper Entry.rec"
+            }
+            "B Exec Upper Smoker"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-273.031372 1595.042846 -151.997451"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/B Exec Upper Smoker.rec"
+            }
+            "B Exec Upper Molly"
+            {
+                "position" "-2020.000000 1296.000000 -191.968750"
+                "lookat" "-539.031250 1267.193847 -163.005676"
+                "utility1" "46 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/B Exec Upper Molly.rec"
+            }
+            "B Exec Con Smoker"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-245.821289 1441.390380 -184.126159"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "utility3" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/B Exec Con Smoker.rec"
+            }
+            "B Exec Regular"
+            {
+                "position" "-2084.000000 1216.000000 -191.968750"
+                "lookat" "-539.031250 1294.890380 -157.824661"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/B Exec Regular.rec"
+            }
+        }
+        "A Execute"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Exec Bombtrain Smoker"
+            {
+                "position" "-2084.000000 1216.000000 -191.968750"
+                "lookat" "-539.031250 1297.510742 -165.676788"
+                "utility1" "43 2"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Exec Bombtrain Smoker.rec"
+            }
+            "A Exec Sandwich Molly"
+            {
+                "position" "-2020.000000 1296.000000 -191.968750"
+                "lookat" "-539.031250 1268.335693 -163.442077"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Exec Sandwich Molly.rec"
+            }
+            "A Exec Backsite Molly"
+            {
+                "position" "-2020.000000 1358.000000 -191.968750"
+                "lookat" "-539.031250 1250.745849 -174.813018"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Exec Backsite Molly.rec"
+            }
+            "A Exec Popdog Smoker"
+            {
+                "position" "-1950.000000 1438.000000 -191.968750"
+                "lookat" "-856.031250 1226.241943 -170.347503"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Exec Popdog Smoker.rec"
+            }
+            "A Exec Popdog Regular"
+            {
+                "position" "-1884.000000 1144.000000 -191.968750"
+                "lookat" "-286.935913 1593.114624 -155.778900"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_train/A Exec Popdog Regular.rec"
+            }
+        }
+    }
 }
