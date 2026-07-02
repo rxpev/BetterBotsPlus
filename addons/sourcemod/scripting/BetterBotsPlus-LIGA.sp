@@ -35,6 +35,10 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define FAKE_OBJECTIVE_ENEMY_RANGE 1250.0
 #define CT_DEFAULT_ARRIVE_DISTANCE 35.0
 #define CT_DEFAULT_ASSIGN_CHANCE 70.0
+#define CT_DEFAULT_IGL_MENU_CLOSE_DELAY 5.0
+#define CT_DEFAULT_IGL_MENU_MAX_OPTIONS 6
+#define CT_DEFAULT_IGL_MAX_SPLITS 32
+#define CT_DEFAULT_PLAN_COUNT 7
 #define CT_DEFAULT_BOMB_CALLOUT_CHANCE 75.0
 #define CT_DEFAULT_BOMB_CALLOUT_COOLDOWN 1.5
 #define CT_DEFAULT_THREAT_SOUND_MAX_DIST 900.0
@@ -73,6 +77,7 @@ float g_fShootTimestamp[MAXPLAYERS+1], g_fThrowNadeTimestamp[MAXPLAYERS+1], g_fC
 
 ConVar g_hCvarIsAWP;
 ConVar g_hCvarIsFaceit;
+ConVar g_hCvarIsIGL;
 ConVar g_cvBotEcoLimit;
 Handle g_hBotMoveTo;
 Handle g_hLookupBone;
@@ -135,6 +140,16 @@ int g_iCTDefaultSpot[MAXPLAYERS + 1] = {-1, ...};
 bool g_bCTDefaultAtSpot[MAXPLAYERS + 1];
 bool g_bDefaultClaimed[MAX_DEFAULTS];
 bool g_bCTDefaultsAssigned = false;
+bool g_bIGLCTDefaultMenuPending = false;
+bool g_bIGLCTDefaultSelected = false;
+int g_iIGLCTDefaultClientUserId = 0;
+int g_iIGLCTDefaultA = 0;
+int g_iIGLCTDefaultMid = 0;
+int g_iIGLCTDefaultB = 0;
+int g_iCTDefaultPlanA[CT_DEFAULT_PLAN_COUNT] = {2, 3, 2, 1, 1, 2, 4};
+int g_iCTDefaultPlanMid[CT_DEFAULT_PLAN_COUNT] = {1, 0, 2, 2, 1, 0, 0};
+int g_iCTDefaultPlanB[CT_DEFAULT_PLAN_COUNT] = {2, 2, 1, 2, 2, 3, 1};
+int g_iCTDefaultPlanWeight[CT_DEFAULT_PLAN_COUNT] = {35, 25, 15, 10, 7, 5, 3};
 float g_fLastCTDefaultBombCallout;
 float g_fLastCTDefaultThreatSound[MAXPLAYERS + 1];
 int g_iRecentCTBombDropVictimUserId;
@@ -328,6 +343,7 @@ public void OnPluginStart()
 	g_bIsCompetitive = FindConVar("game_mode").IntValue == 1 && FindConVar("game_type").IntValue == 0 ? true : false;
 	g_hCvarIsAWP = FindConVar("isAWP");
 	g_hCvarIsFaceit = FindConVar("isFaceit");
+	g_hCvarIsIGL = FindConVar("isIGL");
 
 	HookEventEx("player_spawn", OnPlayerSpawn);
 	HookEventEx("round_prestart", OnRoundPreStart);
@@ -871,6 +887,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	g_bBombPlanted = false;
 	g_bBombExploded = false;
 	g_bCTDefaultsAssigned = false;
+	ClearIGLCTDefaultSelection();
 	g_iPlantedBombSite = DEFAULT_SITE_UNKNOWN;
 	ClearActiveStrategy(false);
 	g_bStrategySelectionRolled = false;
@@ -938,12 +955,18 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 		g_iReservedDroppedPrimary[i] = -1;
 		g_iLastLoggedDroppedPrimary[i] = -1;
     }
+
+    if (IsIGLCTDefaultControlEnabled())
+    {
+        ShowIGLCTDefaultMenu();
+    }
 }
 
 public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 {
     ClearActiveStrategy(false);
     g_bCTDefaultsAssigned = false;
+    CloseIGLCTDefaultMenu(true);
     g_bRoundEnded = true;
     EnableBombSites();
     ClearDroppedPrimaryReservations();
@@ -1017,7 +1040,23 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bFreezetimeEnd = true;
     g_fFreezeTimeEnd = GetGameTime();
     g_bStrategySelectionPending = HasStrategyForTeam(CS_TEAM_T);
-    if (!TryAssignCTDefaults())
+    if (IsIGLCTDefaultControlEnabled())
+    {
+        if (g_bIGLCTDefaultSelected)
+        {
+            if (!TryApplyIGLCTDefaultSelection())
+                CreateTimer(0.2, Timer_AssignCTDefaults, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+        }
+        else if (g_bIGLCTDefaultMenuPending)
+        {
+            CreateTimer(CT_DEFAULT_IGL_MENU_CLOSE_DELAY, Timer_CloseIGLCTDefaultMenu, _, TIMER_FLAG_NO_MAPCHANGE);
+        }
+        else
+        {
+            g_bCTDefaultsAssigned = true;
+        }
+    }
+    else if (!TryAssignCTDefaults())
     {
         CreateTimer(0.2, Timer_AssignCTDefaults, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
@@ -4626,6 +4665,418 @@ bool IsClientAtCTDefaultSpot(int client)
     return GetVectorDistance(g_fBotOrigin[client], g_fDefaultPos[defaultSpot]) <= CT_DEFAULT_ARRIVE_DISTANCE;
 }
 
+bool IsIGLCTDefaultControlEnabled()
+{
+    if (g_hCvarIsIGL == null)
+        g_hCvarIsIGL = FindConVar("isIGL");
+
+    return g_hCvarIsIGL != null && g_hCvarIsIGL.IntValue == 1;
+}
+
+void ClearIGLCTDefaultSelection()
+{
+    g_bIGLCTDefaultMenuPending = false;
+    g_bIGLCTDefaultSelected = false;
+    g_iIGLCTDefaultClientUserId = 0;
+    g_iIGLCTDefaultA = 0;
+    g_iIGLCTDefaultMid = 0;
+    g_iIGLCTDefaultB = 0;
+}
+
+int GetIGLCTDefaultClient()
+{
+    int savedClient = GetClientOfUserId(g_iIGLCTDefaultClientUserId);
+    if (IsValidClient(savedClient) && !IsFakeClient(savedClient) && IsPlayerAlive(savedClient) && GetClientTeam(savedClient) == CS_TEAM_CT)
+        return savedClient;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && !IsFakeClient(i) && IsPlayerAlive(i) && GetClientTeam(i) == CS_TEAM_CT)
+            return i;
+    }
+
+    return 0;
+}
+
+int CountEligibleCTDefaultBots()
+{
+    int count = 0;
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (CanUseBotForCTDefault(i))
+            count++;
+    }
+
+    return count;
+}
+
+bool IsValidCTDefaultSplit(int aCount, int midCount, int bCount, int eligibleCount)
+{
+    int total = aCount + midCount + bCount;
+    if (total <= 0 || total > eligibleCount)
+        return false;
+
+    return HasEnoughDefaultsForSite(DEFAULT_SITE_A, aCount) &&
+        HasEnoughDefaultsForSite(DEFAULT_SITE_MID, midCount) &&
+        HasEnoughDefaultsForSite(DEFAULT_SITE_B, bCount);
+}
+
+bool TrimCTDefaultSplitToEligible(int &aCount, int &midCount, int &bCount, int eligibleCount)
+{
+    while ((aCount + midCount + bCount) > eligibleCount)
+    {
+        if (aCount >= midCount && aCount >= bCount && aCount > 0)
+        {
+            aCount--;
+        }
+        else if (midCount >= aCount && midCount >= bCount && midCount > 0)
+        {
+            midCount--;
+        }
+        else if (bCount > 0)
+        {
+            bCount--;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    while (!HasEnoughDefaultsForSite(DEFAULT_SITE_A, aCount) && aCount > 0)
+        aCount--;
+
+    while (!HasEnoughDefaultsForSite(DEFAULT_SITE_MID, midCount) && midCount > 0)
+        midCount--;
+
+    while (!HasEnoughDefaultsForSite(DEFAULT_SITE_B, bCount) && bCount > 0)
+        bCount--;
+
+    return (aCount + midCount + bCount) > 0 && (aCount + midCount + bCount) <= eligibleCount;
+}
+
+int GetCTDefaultSplitSpread(int aCount, int midCount, int bCount)
+{
+    int minCount = 99;
+    int maxCount = 0;
+    int activeSites = 0;
+
+    if (HasEnoughDefaultsForSite(DEFAULT_SITE_A, 1))
+    {
+        minCount = (aCount < minCount) ? aCount : minCount;
+        maxCount = (aCount > maxCount) ? aCount : maxCount;
+        activeSites++;
+    }
+
+    if (HasEnoughDefaultsForSite(DEFAULT_SITE_MID, 1))
+    {
+        minCount = (midCount < minCount) ? midCount : minCount;
+        maxCount = (midCount > maxCount) ? midCount : maxCount;
+        activeSites++;
+    }
+
+    if (HasEnoughDefaultsForSite(DEFAULT_SITE_B, 1))
+    {
+        minCount = (bCount < minCount) ? bCount : minCount;
+        maxCount = (bCount > maxCount) ? bCount : maxCount;
+        activeSites++;
+    }
+
+    if (activeSites <= 1)
+        return 0;
+
+    return maxCount - minCount;
+}
+
+int GetCTDefaultSplitDominantSite(int aCount, int midCount, int bCount)
+{
+    if (aCount > midCount && aCount > bCount)
+        return 0;
+
+    if (midCount > aCount && midCount > bCount)
+        return 1;
+
+    if (bCount > aCount && bCount > midCount)
+        return 2;
+
+    return 3;
+}
+
+bool AddIGLCTDefaultMenuSplit(int aCount, int midCount, int bCount, int selectedA[CT_DEFAULT_IGL_MENU_MAX_OPTIONS], int selectedMid[CT_DEFAULT_IGL_MENU_MAX_OPTIONS], int selectedB[CT_DEFAULT_IGL_MENU_MAX_OPTIONS], int &selectedCount)
+{
+    if (selectedCount >= CT_DEFAULT_IGL_MENU_MAX_OPTIONS)
+        return false;
+
+    for (int i = 0; i < selectedCount; i++)
+    {
+        if (selectedA[i] == aCount && selectedMid[i] == midCount && selectedB[i] == bCount)
+            return false;
+    }
+
+    selectedA[selectedCount] = aCount;
+    selectedMid[selectedCount] = midCount;
+    selectedB[selectedCount] = bCount;
+    selectedCount++;
+    return true;
+}
+
+int PickRandomIGLCTDefaultCandidate(int preferredGroup, int candidateA[CT_DEFAULT_IGL_MAX_SPLITS], int candidateMid[CT_DEFAULT_IGL_MAX_SPLITS], int candidateB[CT_DEFAULT_IGL_MAX_SPLITS], bool usedCandidate[CT_DEFAULT_IGL_MAX_SPLITS], int candidateCount)
+{
+    int matches[CT_DEFAULT_IGL_MAX_SPLITS];
+    int matchCount = 0;
+
+    for (int i = 0; i < candidateCount; i++)
+    {
+        if (usedCandidate[i])
+            continue;
+
+        if (preferredGroup < 0 || GetCTDefaultSplitDominantSite(candidateA[i], candidateMid[i], candidateB[i]) == preferredGroup)
+            matches[matchCount++] = i;
+    }
+
+    if (matchCount == 0 && preferredGroup >= 0)
+        return PickRandomIGLCTDefaultCandidate(-1, candidateA, candidateMid, candidateB, usedCandidate, candidateCount);
+
+    if (matchCount == 0)
+        return -1;
+
+    return matches[GetRandomInt(0, matchCount - 1)];
+}
+
+void ShowIGLCTDefaultMenu()
+{
+    if (g_iMaxDefaults <= 0 || g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod())
+        return;
+
+    int client = GetIGLCTDefaultClient();
+    if (client == 0)
+        return;
+
+    int eligibleCount = CountEligibleCTDefaultBots();
+    if (eligibleCount <= 0)
+        return;
+
+    int controlledCount = eligibleCount;
+    if (controlledCount > 5)
+        controlledCount = 5;
+
+    int candidateA[CT_DEFAULT_IGL_MAX_SPLITS];
+    int candidateMid[CT_DEFAULT_IGL_MAX_SPLITS];
+    int candidateB[CT_DEFAULT_IGL_MAX_SPLITS];
+    bool usedCandidate[CT_DEFAULT_IGL_MAX_SPLITS];
+    int candidateCount = 0;
+    int bestSpread = 99;
+
+    for (int aCount = controlledCount; aCount >= 0; aCount--)
+    {
+        for (int midCount = controlledCount - aCount; midCount >= 0; midCount--)
+        {
+            int bCount = controlledCount - aCount - midCount;
+
+            if (!IsValidCTDefaultSplit(aCount, midCount, bCount, eligibleCount))
+                continue;
+
+            candidateA[candidateCount] = aCount;
+            candidateMid[candidateCount] = midCount;
+            candidateB[candidateCount] = bCount;
+            usedCandidate[candidateCount] = false;
+            candidateCount++;
+
+            int spread = GetCTDefaultSplitSpread(aCount, midCount, bCount);
+            if (spread < bestSpread)
+                bestSpread = spread;
+
+            if (candidateCount >= CT_DEFAULT_IGL_MAX_SPLITS)
+                break;
+        }
+    }
+
+    if (candidateCount == 0)
+        return;
+
+    int selectedA[CT_DEFAULT_IGL_MENU_MAX_OPTIONS];
+    int selectedMid[CT_DEFAULT_IGL_MENU_MAX_OPTIONS];
+    int selectedB[CT_DEFAULT_IGL_MENU_MAX_OPTIONS];
+    int selectedCount = 0;
+
+    for (int i = 0; i < candidateCount; i++)
+    {
+        if (GetCTDefaultSplitSpread(candidateA[i], candidateMid[i], candidateB[i]) != bestSpread)
+            continue;
+
+        if (AddIGLCTDefaultMenuSplit(candidateA[i], candidateMid[i], candidateB[i], selectedA, selectedMid, selectedB, selectedCount))
+            usedCandidate[i] = true;
+    }
+
+    int groupOrder[3] = {0, 1, 2};
+    for (int i = 0; i < 3; i++)
+    {
+        int swapIndex = GetRandomInt(i, 2);
+        int temp = groupOrder[i];
+        groupOrder[i] = groupOrder[swapIndex];
+        groupOrder[swapIndex] = temp;
+    }
+
+    int groupCursor = 0;
+    while (selectedCount < CT_DEFAULT_IGL_MENU_MAX_OPTIONS)
+    {
+        int candidate = PickRandomIGLCTDefaultCandidate(groupOrder[groupCursor], candidateA, candidateMid, candidateB, usedCandidate, candidateCount);
+        if (candidate == -1)
+            break;
+
+        AddIGLCTDefaultMenuSplit(candidateA[candidate], candidateMid[candidate], candidateB[candidate], selectedA, selectedMid, selectedB, selectedCount);
+        usedCandidate[candidate] = true;
+        groupCursor = (groupCursor + 1) % 3;
+    }
+
+    for (int i = 0; i < selectedCount - 1; i++)
+    {
+        for (int j = i + 1; j < selectedCount; j++)
+        {
+            if (selectedA[j] > selectedA[i] ||
+                (selectedA[j] == selectedA[i] && selectedMid[j] > selectedMid[i]) ||
+                (selectedA[j] == selectedA[i] && selectedMid[j] == selectedMid[i] && selectedB[j] < selectedB[i]))
+            {
+                int tempA = selectedA[i];
+                int tempMid = selectedMid[i];
+                int tempB = selectedB[i];
+                selectedA[i] = selectedA[j];
+                selectedMid[i] = selectedMid[j];
+                selectedB[i] = selectedB[j];
+                selectedA[j] = tempA;
+                selectedMid[j] = tempMid;
+                selectedB[j] = tempB;
+            }
+        }
+    }
+
+    Menu menu = CreateMenuEx(GetMenuStyleHandle(MenuStyle_Radio), MenuHandler_IGLCTDefault);
+    menu.SetTitle("CT Default Setup");
+    menu.ExitButton = true;
+
+    for (int i = 0; i < selectedCount; i++)
+    {
+        char info[8];
+        char display[64];
+        Format(info, sizeof(info), "%d%d%d", selectedA[i], selectedMid[i], selectedB[i]);
+        Format(display, sizeof(display), "%d A / %d Mid / %d B", selectedA[i], selectedMid[i], selectedB[i]);
+        menu.AddItem(info, display);
+    }
+
+    g_iIGLCTDefaultClientUserId = GetClientUserId(client);
+    g_bIGLCTDefaultMenuPending = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+void CloseIGLCTDefaultMenu(bool cancelDisplay)
+{
+    int client = GetClientOfUserId(g_iIGLCTDefaultClientUserId);
+    if (cancelDisplay && client != 0 && IsClientInGame(client))
+        CancelClientMenu(client, true);
+
+    g_bIGLCTDefaultMenuPending = false;
+}
+
+public Action Timer_CloseIGLCTDefaultMenu(Handle timer, any data)
+{
+    if (g_bRoundEnded || g_bBombPlanted || !IsIGLCTDefaultControlEnabled())
+        return Plugin_Stop;
+
+    if (!g_bIGLCTDefaultSelected)
+    {
+        CloseIGLCTDefaultMenu(true);
+        g_bCTDefaultsAssigned = true;
+        PrintToServer("[DEFAULTS] IGL did not select a CT default.");
+    }
+
+    return Plugin_Stop;
+}
+
+public int MenuHandler_IGLCTDefault(Menu menu, MenuAction action, int param1, int param2)
+{
+    if (action == MenuAction_Select)
+    {
+        char info[8];
+        menu.GetItem(param2, info, sizeof(info));
+
+        g_iIGLCTDefaultA = info[0] - '0';
+        g_iIGLCTDefaultMid = info[1] - '0';
+        g_iIGLCTDefaultB = info[2] - '0';
+        g_bIGLCTDefaultSelected = true;
+        g_bIGLCTDefaultMenuPending = false;
+        g_iIGLCTDefaultClientUserId = GetClientUserId(param1);
+
+        PrintToServer("[DEFAULTS] IGL selected split: %d A, %d Mid, %d B.", g_iIGLCTDefaultA, g_iIGLCTDefaultMid, g_iIGLCTDefaultB);
+
+        if (g_bFreezetimeEnd)
+            TryApplyIGLCTDefaultSelection();
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        g_bIGLCTDefaultMenuPending = false;
+    }
+    else if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+
+    return 0;
+}
+
+bool TryApplyIGLCTDefaultSelection()
+{
+    if (g_bCTDefaultsAssigned || g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod())
+        return true;
+
+    if (!g_bIGLCTDefaultSelected)
+        return true;
+
+    if (IsWeaponDropPendingForStrategyTeam(CS_TEAM_CT))
+        return false;
+
+    AssignSelectedCTDefaults(g_iIGLCTDefaultA, g_iIGLCTDefaultMid, g_iIGLCTDefaultB);
+    return true;
+}
+
+void ClearAllCTDefaultAssignments()
+{
+    for (int i = 0; i < g_iMaxDefaults; i++)
+    {
+        g_bDefaultClaimed[i] = false;
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        g_iCTDefaultSpot[i] = -1;
+        g_bCTDefaultAtSpot[i] = false;
+    }
+}
+
+void AssignSelectedCTDefaults(int aCount, int midCount, int bCount)
+{
+    g_bCTDefaultsAssigned = true;
+    CloseIGLCTDefaultMenu(false);
+    ClearAllCTDefaultAssignments();
+
+    int eligibleCount = CountEligibleCTDefaultBots();
+    if (g_iMaxDefaults <= 0 || !TrimCTDefaultSplitToEligible(aCount, midCount, bCount, eligibleCount))
+    {
+        PrintToServer("[DEFAULTS] IGL CT default split is no longer valid.");
+        return;
+    }
+
+    bool used[MAXPLAYERS + 1];
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        used[i] = false;
+    }
+
+    PrintToServer("[DEFAULTS] Applying IGL split: %d A, %d Mid, %d B.", aCount, midCount, bCount);
+    AssignDefaultSiteSpots(DEFAULT_SITE_A, aCount, used);
+    AssignDefaultSiteSpots(DEFAULT_SITE_MID, midCount, used);
+    AssignDefaultSiteSpots(DEFAULT_SITE_B, bCount, used);
+}
+
 public Action Timer_AssignCTDefaults(Handle timer, any data)
 {
     if (TryAssignCTDefaults())
@@ -4638,6 +5089,9 @@ bool TryAssignCTDefaults()
 {
     if (g_bCTDefaultsAssigned || g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod())
         return true;
+
+    if (IsIGLCTDefaultControlEnabled())
+        return TryApplyIGLCTDefaultSelection();
 
     if (IsWeaponDropPendingForStrategyTeam(CS_TEAM_CT))
         return false;
@@ -4767,31 +5221,27 @@ bool IsNoiseProtectedMimic(int client)
 
 bool PickDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount)
 {
-    int planA[7] = {2, 3, 2, 1, 1, 2, 4};
-    int planMid[7] = {1, 0, 2, 2, 1, 0, 0};
-    int planB[7] = {2, 2, 1, 2, 2, 3, 1};
-    int weights[7] = {35, 25, 15, 10, 7, 5, 3};
-    int candidates[7];
-    int candidateWeights[7];
+    int candidates[CT_DEFAULT_PLAN_COUNT];
+    int candidateWeights[CT_DEFAULT_PLAN_COUNT];
     int candidateCount = 0;
     int totalWeight = 0;
 
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < CT_DEFAULT_PLAN_COUNT; i++)
     {
-        int total = planA[i] + planMid[i] + planB[i];
+        int total = g_iCTDefaultPlanA[i] + g_iCTDefaultPlanMid[i] + g_iCTDefaultPlanB[i];
         if (total > eligibleCount)
             continue;
 
-        if (!HasEnoughDefaultsForSite(DEFAULT_SITE_A, planA[i]) ||
-            !HasEnoughDefaultsForSite(DEFAULT_SITE_MID, planMid[i]) ||
-            !HasEnoughDefaultsForSite(DEFAULT_SITE_B, planB[i]))
+        if (!HasEnoughDefaultsForSite(DEFAULT_SITE_A, g_iCTDefaultPlanA[i]) ||
+            !HasEnoughDefaultsForSite(DEFAULT_SITE_MID, g_iCTDefaultPlanMid[i]) ||
+            !HasEnoughDefaultsForSite(DEFAULT_SITE_B, g_iCTDefaultPlanB[i]))
         {
             continue;
         }
 
         candidates[candidateCount] = i;
-        candidateWeights[candidateCount] = weights[i];
-        totalWeight += weights[i];
+        candidateWeights[candidateCount] = g_iCTDefaultPlanWeight[i];
+        totalWeight += g_iCTDefaultPlanWeight[i];
         candidateCount++;
     }
 
@@ -4807,9 +5257,9 @@ bool PickDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount
         if (roll <= cursor)
         {
             int plan = candidates[i];
-            aCount = planA[plan];
-            midCount = planMid[plan];
-            bCount = planB[plan];
+            aCount = g_iCTDefaultPlanA[plan];
+            midCount = g_iCTDefaultPlanMid[plan];
+            bCount = g_iCTDefaultPlanB[plan];
             PrintToServer("[DEFAULTS] Picked split: %d A, %d Mid, %d B.", aCount, midCount, bCount);
             return true;
         }
