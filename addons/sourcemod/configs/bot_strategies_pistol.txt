@@ -1091,4 +1091,128 @@
             }
         }
     }
+    "de_vertigo"
+    {
+        "Mid2B"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "Mid2B Mid Util"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-2476.394531 -1136.186645 11743.968750"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/Mid2B Mid Util.rec"
+            }
+            "Mid2B Site Util"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-4095.968750 -854.529785 11959.356445"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/Mid2B Site Util.rec"
+            }
+            "Mid2B Mid Regular"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-4095.968750 -463.195922 11995.656250"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/Mid2B Mid Regular.rec"
+            }
+            "Mid2B Mid Regular 2"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-2536.265869 -1020.031250 11742.373046"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/Mid2B Mid Regular 2.rec"
+            }
+            "Mid2B Stairs Lurk"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-2368.968750 -474.247802 11561.061523"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/Mid2B Stairs Lurk.rec"
+            }
+        }
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "35.0"
+            "minplayers" "5"
+
+            "A Rush Util"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-2476.394531 -1136.186645 11743.968750"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/A Rush Util.rec"
+            }
+            "A Rush Short Regular"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-1937.704833 -787.296936 11558.507812"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/A Rush Short Regular.rec"
+            }
+            "A Rush Short Regular 2"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-1905.293945 -788.402648 11552.385742"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/A Rush Short Regular 2.rec"
+            }
+            "A Rush Short Regular 3"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-2368.968750 -508.131347 11556.606445"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/A Rush Short Regular 3.rec"
+            }
+            "A Rush Ramp Regular"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-2523.968750 -1262.999145 11547.965820"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/A Rush Ramp Regular.rec"
+            }
+        }
+        "B Execute"
+        {
+            "team" "T"
+            "chance" "25.0"
+            "minplayers" "5"
+
+            "B Exec Util"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-2476.394531 -1136.186645 11743.968750"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/B Exec Util.rec"
+            }
+            "B Exec Mid Util"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-2368.968750 -480.380920 11565.932617"
+                "utility1" "43 1"
+                "utility2" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/B Exec Mid Util.rec"
+            }
+            "B Exec Regular"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-2067.956542 -699.540344 11539.337890"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/B Exec Regular.rec"
+            }
+            "B Exec Regular 2"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-4095.968750 -1063.170654 11615.729492"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/B Exec Regular 2.rec"
+            }
+            "B Exec Regular 3"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-1893.863891 -1158.031250 11550.330078"
+                "replay" "addons/sourcemod/data/botmimic/pistolstrats/de_vertigo/B Exec Regular 3.rec"
+            }
+        }
+    }
 }
