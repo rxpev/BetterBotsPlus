@@ -53,6 +53,13 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define T_POSTPLANT_THREAT_SOUND_COOLDOWN 1.0
 #define T_POSTPLANT_LOOK_DURATION 0.25
 #define T_POSTPLANT_LOOK_TOLERANCE 1.0
+#define FAKE_DEFUSE_MIN_COOLDOWN 4.0
+#define FAKE_DEFUSE_MAX_COOLDOWN 6.0
+#define FAKE_DEFUSE_ABORT_INTERVAL 0.25
+#define FAKE_DEFUSE_REPOSITION_MIN_DIST 180.0
+#define FAKE_DEFUSE_REPOSITION_MAX_DIST 750.0
+#define FAKE_DEFUSE_CHANCE 50.0
+#define FAKE_DEFUSE_RETURN_TIME_BUFFER 1.0
 
 char g_szMap[128];
 char g_szCrosshairCode[MAXPLAYERS+1][35], g_szPreviousBuy[MAXPLAYERS+1][128];
@@ -60,7 +67,7 @@ bool g_bIsBombScenario, g_bIsHostageScenario, g_bFreezetimeEnd, g_bRoundEnded, g
 bool g_bRoundWonCT, g_bRoundWonT;
 bool g_bUseCZ75[MAXPLAYERS+1], g_bUseUSP[MAXPLAYERS+1], g_bUseM4A1S[MAXPLAYERS+1], g_bDontSwitch[MAXPLAYERS+1], g_bDropWeapon[MAXPLAYERS+1], g_bHasGottenDrop[MAXPLAYERS+1];
 bool g_bIsProBot[MAXPLAYERS+1], g_bIsIntermediateBot[MAXPLAYERS+1], g_bIsAWPer[MAXPLAYERS+1], g_bThrowGrenade[MAXPLAYERS+1], g_bUncrouch[MAXPLAYERS+1];
-bool g_bBotHasForcedBuy[MAXPLAYERS+1]; g_bDidFakePlant[MAXPLAYERS+1], g_bFakePlantRolled[MAXPLAYERS + 1], g_bIsFakeDefusing[MAXPLAYERS+1], g_bDidRun[MAXPLAYERS+1], g_bBotCompromised[MAXPLAYERS+1], g_bDidInitialSwitch[MAXPLAYERS+1];
+bool g_bBotHasForcedBuy[MAXPLAYERS+1]; g_bDidFakePlant[MAXPLAYERS+1], g_bFakePlantRolled[MAXPLAYERS + 1], g_bDidFakeDefuse[MAXPLAYERS + 1], g_bIsFakeDefusing[MAXPLAYERS+1], g_bFakeDefuseReturning[MAXPLAYERS+1], g_bFakeDefuseForcingUse[MAXPLAYERS+1], g_bDidRun[MAXPLAYERS+1], g_bBotCompromised[MAXPLAYERS+1], g_bDidInitialSwitch[MAXPLAYERS+1];
 bool g_bHasSavedAWP[MAXPLAYERS + 1], g_bHasPickedUpAWP[MAXPLAYERS + 1], g_bIsAWPDonor[MAXPLAYERS + 1], g_bBuyDelayed[MAXPLAYERS + 1], g_bAWPDropQueued[MAXPLAYERS + 1], g_bDonationInProgress[MAXPLAYERS + 1], g_bShouldPickupDroppedGun[MAXPLAYERS + 1], g_bAwaitingHumanAWPDrop[MAXPLAYERS + 1];
 int g_iSavedAWPFor[MAXPLAYERS + 1], g_iHumanAWPDropDonor[MAXPLAYERS + 1], g_iReservedDroppedPrimary[MAXPLAYERS + 1], g_iLastLoggedDroppedPrimary[MAXPLAYERS + 1];
 int g_iProfileRank[MAXPLAYERS+1], g_iPlayerColor[MAXPLAYERS+1], g_iTarget[MAXPLAYERS+1], g_iPrevTarget[MAXPLAYERS+1], g_iDoingSmokeNum[MAXPLAYERS+1], g_iActiveWeapon[MAXPLAYERS+1];
@@ -72,13 +79,15 @@ int g_BombsiteEntities[64]; g_NumBombsites = 0;
 int g_iBotTargetSpotOffset, g_iBotNearbyEnemiesOffset, g_iFireWeaponOffset, g_iEnemyVisibleOffset, g_iBotProfileOffset, g_iBotSafeTimeOffset, g_iBotEnemyOffset, g_iBotLookAtSpotStateOffset, g_iBotMoraleOffset, g_iBotTaskOffset, g_iBotDispositionOffset;
 float g_fBotOrigin[MAXPLAYERS+1][3], g_fTargetPos[MAXPLAYERS+1][3], g_fNadeTarget[MAXPLAYERS+1][3];
 float g_fRoundStart, g_fFreezeTimeEnd, g_fCurrentTime, g_fTimeElapsed, g_fRoundTimeRemaining, g_fBombTime, g_fTimeLeft; 
-float g_fNadeClaimTime[MAX_NADES], g_fLastMoveTime[MAXPLAYERS + 1], g_fBombsiteDisableTime = 0.0, g_fLastFakeDefuseTime[MAXPLAYERS + 1], g_fLastKill[MAXPLAYERS + 1];
+float g_fNadeClaimTime[MAX_NADES], g_fLastMoveTime[MAXPLAYERS + 1], g_fBombsiteDisableTime = 0.0, g_fFakeDefuseCooldownUntil[MAXPLAYERS + 1], g_fNextFakeDefuseAbort[MAXPLAYERS + 1], g_fFakeDefuseBombPos[MAXPLAYERS + 1][3], g_fFakeDefuseRepositionPos[MAXPLAYERS + 1][3], g_fLastKill[MAXPLAYERS + 1];
 float g_fShootTimestamp[MAXPLAYERS+1], g_fThrowNadeTimestamp[MAXPLAYERS+1], g_fCrouchTimestamp[MAXPLAYERS+1];
 
 ConVar g_hCvarIsAWP;
 ConVar g_hCvarIsFaceit;
 ConVar g_hCvarIsIGL;
 ConVar g_cvBotEcoLimit;
+ConVar g_cvFakeDefuseCooldown;
+ConVar g_cvFakeDefuseCooldownMax;
 Handle g_hBotMoveTo;
 Handle g_hLookupBone;
 Handle g_hGetBonePosition;
@@ -344,6 +353,8 @@ public void OnPluginStart()
 	g_hCvarIsAWP = FindConVar("isAWP");
 	g_hCvarIsFaceit = FindConVar("isFaceit");
 	g_hCvarIsIGL = FindConVar("isIGL");
+	g_cvFakeDefuseCooldown = CreateConVar("bbp_fake_defuse_cooldown", "4.0", "Minimum seconds a CT bot waits before it may try to defuse again after a fake defuse.", _, true, 0.0, true, 10.0);
+	g_cvFakeDefuseCooldownMax = CreateConVar("bbp_fake_defuse_cooldown_max", "6.0", "Maximum seconds a CT bot waits before it may try to defuse again after a fake defuse.", _, true, 0.0, true, 10.0);
 
 	HookEventEx("player_spawn", OnPlayerSpawn);
 	HookEventEx("round_prestart", OnRoundPreStart);
@@ -357,6 +368,7 @@ public void OnPluginStart()
 	HookEvent("bomb_dropped", OnBombDropped);
 	HookEvent("bomb_planted", OnBombPlanted, EventHookMode_Post);
 	HookEvent("bomb_begindefuse", OnBombBeginDefuse);
+	HookEvent("bomb_defused", OnBombDefused);
 	HookEvent("bomb_exploded", OnBombExploded);
 	HookEvent("flashbang_detonate", OnFlashbangDetonate);
 
@@ -412,7 +424,14 @@ public void OnMapStart()
 
     for (int i = 0; i <= MAXPLAYERS; i++) 
     {
-       g_fLastFakeDefuseTime[i] = 0.0;
+       g_fFakeDefuseCooldownUntil[i] = 0.0;
+       g_fNextFakeDefuseAbort[i] = 0.0;
+       g_fFakeDefuseBombPos[i][0] = 0.0;
+       g_fFakeDefuseBombPos[i][1] = 0.0;
+       g_fFakeDefuseBombPos[i][2] = 0.0;
+       g_fFakeDefuseRepositionPos[i][0] = 0.0;
+       g_fFakeDefuseRepositionPos[i][1] = 0.0;
+       g_fFakeDefuseRepositionPos[i][2] = 0.0;
     }
 }
 
@@ -686,6 +705,9 @@ public Action Timer_MoveToBomb(Handle hTimer, any data)
 		if (!g_bBombPlanted || GetClientTeam(i) != CS_TEAM_CT)
 			continue;
 
+		if (IsFakeDefuseSuppressionActive(i))
+			continue;
+
 		int iPlantedC4 = FindEntityByClassname(-1, "planted_c4");
 		if (!IsValidEntity(iPlantedC4))
 			continue;
@@ -906,7 +928,18 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 			g_iReservedDroppedPrimary[i] = -1;
 			g_iLastLoggedDroppedPrimary[i] = -1;
 			g_bBotHasForcedBuy[i] = false;
+			g_bDidFakeDefuse[i] = false;
 			g_bIsFakeDefusing[i] = false;
+			g_bFakeDefuseReturning[i] = false;
+			g_bFakeDefuseForcingUse[i] = false;
+			g_fFakeDefuseCooldownUntil[i] = 0.0;
+			g_fNextFakeDefuseAbort[i] = 0.0;
+			g_fFakeDefuseBombPos[i][0] = 0.0;
+			g_fFakeDefuseBombPos[i][1] = 0.0;
+			g_fFakeDefuseBombPos[i][2] = 0.0;
+			g_fFakeDefuseRepositionPos[i][0] = 0.0;
+			g_fFakeDefuseRepositionPos[i][1] = 0.0;
+			g_fFakeDefuseRepositionPos[i][2] = 0.0;
 			g_bDidRun[i] = false;
 			g_bBotCompromised[i] = false;
 			g_bAngleBlock[i] = false;
@@ -1001,6 +1034,18 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 	    g_bBuyDelayed[i] = false;
 	    g_bAWPDropQueued[i] = false;
 	    g_bDropWeapon[i] = false;
+	    g_bDidFakeDefuse[i] = false;
+	    g_bIsFakeDefusing[i] = false;
+	    g_bFakeDefuseReturning[i] = false;
+	    g_bFakeDefuseForcingUse[i] = false;
+	    g_fFakeDefuseCooldownUntil[i] = 0.0;
+	    g_fNextFakeDefuseAbort[i] = 0.0;
+	    g_fFakeDefuseBombPos[i][0] = 0.0;
+	    g_fFakeDefuseBombPos[i][1] = 0.0;
+	    g_fFakeDefuseBombPos[i][2] = 0.0;
+	    g_fFakeDefuseRepositionPos[i][0] = 0.0;
+	    g_fFakeDefuseRepositionPos[i][1] = 0.0;
+	    g_fFakeDefuseRepositionPos[i][2] = 0.0;
 	    g_bAwaitingHumanAWPDrop[i] = false;
 	    g_iHumanAWPDropDonor[i] = 0;
 		if (IsValidClient(i) && IsFakeClient(i) && BotMimic_IsPlayerMimicing(i))
@@ -1244,6 +1289,12 @@ public void OnBombPlanted(Event event, const char[] name, bool dontBroadcast)
 public void OnBombExploded(Event event, char[] name, bool dontBroadcast)
 {
     g_bBombExploded = true;
+    ClearFakeDefuseStateAll();
+}
+
+public void OnBombDefused(Event event, char[] name, bool dontBroadcast)
+{
+    ClearFakeDefuseStateAll();
 }
 
 void BotCancelMoveTo(int client)
@@ -1256,6 +1307,15 @@ void BotCancelMoveTo(int client)
 public Action OnBombBeginDefuse(Event event, const char[] name, bool dontBroadcast) 
 {
     ReleaseTPostPlantPositions("defuse started");
+
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (IsValidClient(client) && IsFakeClient(client) && g_bFakeDefuseForcingUse[client])
+    {
+        g_bFakeDefuseReturning[client] = false;
+        g_bIsFakeDefusing[client] = false;
+        PrintToServer("[FAKEDEFUSE] Bot %d started real defuse after fake.", client);
+        return Plugin_Continue;
+    }
 
     DataPack pack = new DataPack();
     pack.WriteCell(event.GetInt("userid"));
@@ -1283,6 +1343,13 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
         return Plugin_Continue;
     }
 
+    if (IsFakeDefuseCooldownActive(client))
+    {
+        PrintToServer("[FAKEDEFUSE] client %d is on cooldown; sticking to normal AI instead of rolling another fake.", client);
+        AbortDefuseAttemptForCooldown(client);
+        return Plugin_Continue;
+    }
+
     if (AreAllEnemiesDead(client)) 
     {
         PrintToServer("[FAKEDEFUSE] All enemies are dead. Sticking to defuse without fake defuse.");
@@ -1302,30 +1369,35 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
 
         if ((bHasDefuser && g_fTimeLeft >= 10.0) || (!bHasDefuser && g_fTimeLeft >= 14.0)) 
         {
+            if (!IsItMyChance(FAKE_DEFUSE_CHANCE))
+            {
+                PrintToServer("[FAKEDEFUSE] client %d failed %.0f%% RNG", client, FAKE_DEFUSE_CHANCE);
+                return Plugin_Continue;
+            }
+
+            float fakeCooldown = PickFakeDefuseCooldownForTimeLeft(client);
+            if (fakeCooldown <= 0.0)
+            {
+                PrintToServer("[FAKEDEFUSE] client %d does not have enough bomb time for a fake defuse cooldown (Time left: %.2f)", client, g_fTimeLeft);
+                return Plugin_Continue;
+            }
+
             if (IsLastCTAlive(client))
             {
-                if (IsItMyChance(90.0)) 
-                {
-                    CreateTimer(GetRandomFloat(0.1, 0.25), Timer_CancelFakeDefuse, userid);
-                }
-                else 
-                {
-                    PrintToServer("[FAKEDEFUSE] client %d failed 90%% RNG", client);
-                }
+                DataPack fakePack = new DataPack();
+                fakePack.WriteCell(userid);
+                fakePack.WriteFloat(fakeCooldown);
+                CreateTimer(GetRandomFloat(0.1, 0.25), Timer_CancelFakeDefuse, fakePack);
                 return Plugin_Continue;
             }
 
             // Check if the bot is far enough from its teammates (450 units or more)
             if (CheckDistanceToTeammates(client)) 
             {
-                if (IsItMyChance(75.0)) 
-                {
-                    CreateTimer(GetRandomFloat(0.1, 0.25), Timer_CancelFakeDefuse, userid);
-                }
-                else 
-                {
-                    PrintToServer("[FAKEDEFUSE] client %d FAILED 75%% RNG", client);
-                }
+                DataPack fakePack = new DataPack();
+                fakePack.WriteCell(userid);
+                fakePack.WriteFloat(fakeCooldown);
+                CreateTimer(GetRandomFloat(0.1, 0.25), Timer_CancelFakeDefuse, fakePack);
             } 
             else 
             {
@@ -1361,129 +1433,432 @@ stock bool IsEnemyWithinRange(int client, float range)
     return false;
 }
 
-public Action Timer_CancelFakeDefuse(Handle timer, any userid)
+float GetRealDefuseTimeForClient(int client)
 {
+    bool bHasDefuser = !!GetEntProp(client, Prop_Send, "m_bHasDefuser");
+    return bHasDefuser ? 5.0 : 10.0;
+}
+
+float PickFakeDefuseCooldownForTimeLeft(int client)
+{
+    float minCooldown = g_cvFakeDefuseCooldown != null ? g_cvFakeDefuseCooldown.FloatValue : FAKE_DEFUSE_MIN_COOLDOWN;
+    float maxCooldown = g_cvFakeDefuseCooldownMax != null ? g_cvFakeDefuseCooldownMax.FloatValue : FAKE_DEFUSE_MAX_COOLDOWN;
+
+    if (maxCooldown < minCooldown)
+        maxCooldown = minCooldown;
+
+    float maxAllowedCooldown = g_fTimeLeft - GetRealDefuseTimeForClient(client) - FAKE_DEFUSE_RETURN_TIME_BUFFER;
+    if (maxAllowedCooldown < minCooldown)
+        return 0.0;
+
+    if (maxCooldown > maxAllowedCooldown)
+        maxCooldown = maxAllowedCooldown;
+
+    return GetRandomFloat(minCooldown, maxCooldown);
+}
+
+bool IsFakeDefuseCooldownActive(int client)
+{
+    return g_fFakeDefuseCooldownUntil[client] > GetGameTime();
+}
+
+void ClearFakeDefuseState(int client)
+{
+    g_bIsFakeDefusing[client] = false;
+    g_bFakeDefuseReturning[client] = false;
+    g_bFakeDefuseForcingUse[client] = false;
+    g_fFakeDefuseCooldownUntil[client] = 0.0;
+    g_fNextFakeDefuseAbort[client] = 0.0;
+    g_fFakeDefuseBombPos[client][0] = 0.0;
+    g_fFakeDefuseBombPos[client][1] = 0.0;
+    g_fFakeDefuseBombPos[client][2] = 0.0;
+    g_fFakeDefuseRepositionPos[client][0] = 0.0;
+    g_fFakeDefuseRepositionPos[client][1] = 0.0;
+    g_fFakeDefuseRepositionPos[client][2] = 0.0;
+}
+
+void ClearFakeDefuseStateAll()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        ClearFakeDefuseState(i);
+    }
+}
+
+bool IsFakeDefuseSuppressionActive(int client)
+{
+    return IsFakeDefuseCooldownActive(client) || g_bFakeDefuseReturning[client] || g_bFakeDefuseForcingUse[client];
+}
+
+bool GetPlantedC4Origin(float fBombOrigin[3])
+{
+    int plantedC4 = FindEntityByClassname(-1, "planted_c4");
+    if (!IsValidEntity(plantedC4))
+        return false;
+
+    if (HasEntProp(plantedC4, Prop_Data, "m_vecAbsOrigin"))
+        GetEntPropVector(plantedC4, Prop_Data, "m_vecAbsOrigin", fBombOrigin);
+    else
+        GetEntPropVector(plantedC4, Prop_Send, "m_vecOrigin", fBombOrigin);
+
+    if (GetVectorLength(fBombOrigin) <= 0.0 && HasEntProp(plantedC4, Prop_Data, "m_vecOrigin"))
+        GetEntPropVector(plantedC4, Prop_Data, "m_vecOrigin", fBombOrigin);
+
+    return true;
+}
+
+bool GetFakeDefuseBombOrigin(int client, float fBombOrigin[3])
+{
+    if (GetVectorLength(g_fFakeDefuseBombPos[client]) > 0.0)
+    {
+        Array_Copy(g_fFakeDefuseBombPos[client], fBombOrigin, 3);
+        return true;
+    }
+
+    return GetPlantedC4Origin(fBombOrigin);
+}
+
+bool IsClientNearPlantedC4(int client)
+{
+    float fBombOrigin[3], fClientOrigin[3];
+    if (!GetFakeDefuseBombOrigin(client, fBombOrigin))
+        return false;
+
+    GetClientAbsOrigin(client, fClientOrigin);
+    float fDelta[3];
+    SubtractVectors(fClientOrigin, fBombOrigin, fDelta);
+    fDelta[2] = 0.0;
+
+    return GetVectorLength(fDelta) <= 72.0 && FloatAbs(fClientOrigin[2] - fBombOrigin[2]) <= 96.0;
+}
+
+bool PickFakeDefuseRepositionPos(int client, float fOut[3])
+{
+    float fBombPos[3], fClientOrigin[3];
+    if (!GetFakeDefuseBombOrigin(client, fBombPos))
+        return false;
+
+    GetClientAbsOrigin(client, fClientOrigin);
+
+    CNavArea startArea = NavMesh_GetNearestArea(fClientOrigin);
+    if (startArea == INVALID_NAV_AREA)
+        return false;
+
+    ArrayStack areas = new ArrayStack();
+    NavMesh_CollectSurroundingAreas(areas, startArea, FAKE_DEFUSE_REPOSITION_MAX_DIST);
+
+    bool bFound = false;
+    float fBestScore = -999999.0;
+    float fEnemyLookPos[3], fToEnemy[3];
+    bool bHasEnemy = FindNearestEnemyLookPos(client, fEnemyLookPos);
+
+    if (bHasEnemy)
+    {
+        SubtractVectors(fEnemyLookPos, fBombPos, fToEnemy);
+        fToEnemy[2] = 0.0;
+        NormalizeVector(fToEnemy, fToEnemy);
+    }
+
+    while (!areas.Empty)
+    {
+        CNavArea area = CNavArea(areas.Pop());
+        if (area == INVALID_NAV_AREA)
+            continue;
+
+        float fCandidate[3];
+        area.GetRandomPoint(fCandidate);
+        NavMesh_GetGroundHeight(fCandidate, fCandidate[2]);
+
+        float fBombDistance = GetVectorDistance(fCandidate, fBombPos);
+        if (fBombDistance < FAKE_DEFUSE_REPOSITION_MIN_DIST || fBombDistance > FAKE_DEFUSE_REPOSITION_MAX_DIST)
+            continue;
+
+        float fClientDistance = GetVectorDistance(fCandidate, fClientOrigin);
+        if (fClientDistance < 96.0)
+            continue;
+
+        float fScore = fBombDistance - (fClientDistance * 0.25);
+        if (bHasEnemy)
+        {
+            float fFromBomb[3];
+            SubtractVectors(fCandidate, fBombPos, fFromBomb);
+            fFromBomb[2] = 0.0;
+            NormalizeVector(fFromBomb, fFromBomb);
+            fScore += GetVectorDotProduct(fFromBomb, fToEnemy) * 150.0;
+        }
+
+        if (!bFound || fScore > fBestScore)
+        {
+            bFound = true;
+            fBestScore = fScore;
+            Array_Copy(fCandidate, fOut, 3);
+        }
+    }
+
+    if (!bFound)
+    {
+        float fAway[3], fFallback[3];
+        SubtractVectors(fClientOrigin, fBombPos, fAway);
+        fAway[2] = 0.0;
+        if (NormalizeVector(fAway, fAway) <= 0.0 && bHasEnemy)
+        {
+            SubtractVectors(fEnemyLookPos, fBombPos, fAway);
+            fAway[2] = 0.0;
+            NormalizeVector(fAway, fAway);
+        }
+
+        if (GetVectorLength(fAway) > 0.0)
+        {
+            fFallback[0] = fBombPos[0] + fAway[0] * FAKE_DEFUSE_REPOSITION_MIN_DIST;
+            fFallback[1] = fBombPos[1] + fAway[1] * FAKE_DEFUSE_REPOSITION_MIN_DIST;
+            fFallback[2] = fBombPos[2];
+
+            CNavArea fallbackArea = NavMesh_GetNearestArea(fFallback, false, 500.0);
+            if (fallbackArea != INVALID_NAV_AREA)
+            {
+                fallbackArea.GetRandomPoint(fOut);
+                NavMesh_GetGroundHeight(fOut, fOut[2]);
+                bFound = true;
+            }
+        }
+    }
+
+    delete areas;
+    return bFound;
+}
+
+void AbortDefuseAttemptForCooldown(int client)
+{
+    SetEntData(client, g_iBotTaskOffset, SEEK_AND_DESTROY);
+    SetDisposition(client, ENGAGE_AND_INVESTIGATE);
+    if (GetVectorLength(g_fFakeDefuseRepositionPos[client]) > 0.0)
+        BotMoveTo(client, g_fFakeDefuseRepositionPos[client], FASTEST_ROUTE);
+    BotEquipBestWeapon(client, true);
+}
+
+void ResumeDefuseObjectiveAfterCooldown(int client)
+{
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT)
+        return;
+
+    if (!g_bBombPlanted || g_bRoundEnded || g_bBombExploded)
+        return;
+
+    float fBombOrigin[3];
+    if (!GetFakeDefuseBombOrigin(client, fBombOrigin))
+        return;
+
+    g_bFakeDefuseReturning[client] = true;
+    SetEntData(client, g_iBotTaskOffset, DEFUSE_BOMB);
+    SetDisposition(client, SELF_DEFENSE);
+    BotMoveTo(client, fBombOrigin, FASTEST_ROUTE);
+}
+
+void HandleFakeDefuseReturnToBomb(int client)
+{
+    if (!g_bFakeDefuseReturning[client])
+        return;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT || !g_bBombPlanted || g_bRoundEnded || g_bBombExploded)
+    {
+        g_bFakeDefuseReturning[client] = false;
+        return;
+    }
+
+    if (IsClientNearPlantedC4(client))
+    {
+        g_bFakeDefuseReturning[client] = false;
+        g_bFakeDefuseForcingUse[client] = true;
+        g_fNextFakeDefuseAbort[client] = 0.0;
+        float fClientOrigin[3], fBombOrigin[3];
+        GetClientAbsOrigin(client, fClientOrigin);
+        GetFakeDefuseBombOrigin(client, fBombOrigin);
+        PrintToServer("[FAKEDEFUSE] Bot %d returned to fake-defuse origin; forcing real defuse. bot=(%.1f %.1f %.1f) origin=(%.1f %.1f %.1f)",
+            client,
+            fClientOrigin[0], fClientOrigin[1], fClientOrigin[2],
+            fBombOrigin[0], fBombOrigin[1], fBombOrigin[2]);
+        return;
+    }
+
+    float fBombOrigin[3];
+    if (!GetFakeDefuseBombOrigin(client, fBombOrigin))
+    {
+        g_bFakeDefuseReturning[client] = false;
+        return;
+    }
+
+    SetEntData(client, g_iBotTaskOffset, DEFUSE_BOMB);
+    SetDisposition(client, SELF_DEFENSE);
+    BotMoveTo(client, fBombOrigin, FASTEST_ROUTE);
+}
+
+void HandleFakeDefuseForceRealDefuse(int client, int &iButtons)
+{
+    if (!g_bFakeDefuseForcingUse[client])
+        return;
+
+    if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_CT || !g_bBombPlanted || g_bRoundEnded || g_bBombExploded)
+    {
+        ClearFakeDefuseState(client);
+        return;
+    }
+
+    if (!IsClientNearPlantedC4(client))
+    {
+        g_bFakeDefuseForcingUse[client] = false;
+        g_bFakeDefuseReturning[client] = true;
+        return;
+    }
+
+    float fBombOrigin[3], fLookPos[3];
+    if (!GetFakeDefuseBombOrigin(client, fBombOrigin))
+    {
+        ClearFakeDefuseState(client);
+        return;
+    }
+
+    Array_Copy(fBombOrigin, fLookPos, 3);
+    fLookPos[2] += 24.0;
+
+    SetEntData(client, g_iBotTaskOffset, DEFUSE_BOMB);
+    SetDisposition(client, SELF_DEFENSE);
+    BotCancelMoveTo(client);
+    BotSetLookAt(client, "Fake defuse real use", fLookPos, PRIORITY_UNINTERRUPTABLE, 0.25, false, 4.0, false);
+
+    iButtons |= IN_USE;
+}
+
+bool ClearFakeDefuseCooldownForDeadEnemies(int client)
+{
+    if (!IsFakeDefuseCooldownActive(client) || !AreAllEnemiesDead(client))
+        return false;
+
+    float fBombOrigin[3];
+    bool bHasBombOrigin = GetFakeDefuseBombOrigin(client, fBombOrigin);
+
+    g_bIsFakeDefusing[client] = false;
+    g_bFakeDefuseForcingUse[client] = false;
+    g_fFakeDefuseCooldownUntil[client] = 0.0;
+    g_fNextFakeDefuseAbort[client] = 0.0;
+    g_fFakeDefuseRepositionPos[client][0] = 0.0;
+    g_fFakeDefuseRepositionPos[client][1] = 0.0;
+    g_fFakeDefuseRepositionPos[client][2] = 0.0;
+
+    if (!bHasBombOrigin)
+    {
+        g_bFakeDefuseReturning[client] = false;
+        g_fFakeDefuseBombPos[client][0] = 0.0;
+        g_fFakeDefuseBombPos[client][1] = 0.0;
+        g_fFakeDefuseBombPos[client][2] = 0.0;
+        PrintToServer("[FAKEDEFUSE] All enemies dead; cleared fake defuse cooldown for bot %d.", client);
+        return true;
+    }
+
+    Array_Copy(fBombOrigin, g_fFakeDefuseBombPos[client], 3);
+    g_bFakeDefuseReturning[client] = true;
+    SetEntData(client, g_iBotTaskOffset, DEFUSE_BOMB);
+    SetDisposition(client, SELF_DEFENSE);
+    BotMoveTo(client, fBombOrigin, FASTEST_ROUTE);
+
+    PrintToServer("[FAKEDEFUSE] All enemies dead; cleared fake defuse cooldown for bot %d and returning to bomb.", client);
+    return true;
+}
+
+void SuppressDefuseAttemptDuringCooldown(int client, int &iButtons)
+{
+    if (!IsFakeDefuseSuppressionActive(client))
+    {
+        if (g_bIsFakeDefusing[client])
+        {
+            g_bIsFakeDefusing[client] = false;
+            g_fFakeDefuseCooldownUntil[client] = 0.0;
+            g_fNextFakeDefuseAbort[client] = 0.0;
+            g_fFakeDefuseRepositionPos[client][0] = 0.0;
+            g_fFakeDefuseRepositionPos[client][1] = 0.0;
+            g_fFakeDefuseRepositionPos[client][2] = 0.0;
+        }
+        return;
+    }
+
+    if (ClearFakeDefuseCooldownForDeadEnemies(client))
+        return;
+
+    if (g_bFakeDefuseForcingUse[client])
+    {
+        HandleFakeDefuseForceRealDefuse(client, iButtons);
+        return;
+    }
+
+    iButtons &= ~IN_USE;
+
+    if (g_bFakeDefuseReturning[client])
+    {
+        float now = GetGameTime();
+        if (now >= g_fNextFakeDefuseAbort[client])
+        {
+            g_fNextFakeDefuseAbort[client] = now + FAKE_DEFUSE_ABORT_INTERVAL;
+            HandleFakeDefuseReturnToBomb(client);
+        }
+        return;
+    }
+
+    float now = GetGameTime();
+    if (now < g_fNextFakeDefuseAbort[client])
+        return;
+
+    g_fNextFakeDefuseAbort[client] = now + FAKE_DEFUSE_ABORT_INTERVAL;
+    AbortDefuseAttemptForCooldown(client);
+}
+
+public Action Timer_CancelFakeDefuse(Handle timer, DataPack pack)
+{
+    pack.Reset();
+    int userid = pack.ReadCell();
+    float cooldown = pack.ReadFloat();
+    delete pack;
+
     int client = GetClientOfUserId(userid);
     if (!IsValidClient(client) || !IsPlayerAlive(client) || !IsFakeClient(client) || GetClientTeam(client) != CS_TEAM_CT)
     {
         return Plugin_Handled;
     }
 
-    // Initialize fake defuse state
-    g_fLastFakeDefuseTime[client] = GetGameTime();
+    if (AreAllEnemiesDead(client))
+    {
+        PrintToServer("[FAKEDEFUSE] All enemies died before fake cancel; bot %d keeps real defuse.", client);
+        return Plugin_Handled;
+    }
+
+    if (cooldown <= 0.0)
+    {
+        g_bIsFakeDefusing[client] = false;
+        g_bFakeDefuseReturning[client] = false;
+        g_fFakeDefuseCooldownUntil[client] = 0.0;
+        g_fNextFakeDefuseAbort[client] = 0.0;
+        g_fFakeDefuseRepositionPos[client][0] = 0.0;
+        g_fFakeDefuseRepositionPos[client][1] = 0.0;
+        g_fFakeDefuseRepositionPos[client][2] = 0.0;
+        return Plugin_Handled;
+    }
+
+    g_fFakeDefuseCooldownUntil[client] = GetGameTime() + cooldown;
+    g_fNextFakeDefuseAbort[client] = 0.0;
     g_bIsFakeDefusing[client] = true;
+    g_bFakeDefuseReturning[client] = false;
+    GetClientAbsOrigin(client, g_fFakeDefuseBombPos[client]);
 
-    PrintToServer("[FAKEDEFUSE] Started fake defuse for client %d", client);
-
-    float fClientPos[3], fEnemyLookPos[3], fToEnemy[3];
-    GetClientEyePosition(client, fClientPos);
-
-    bool bHasNearestEnemy = FindNearestEnemyLookPos(client, fEnemyLookPos);
-    if (bHasNearestEnemy)
-        SubtractVectors(fEnemyLookPos, fClientPos, fToEnemy);
-
-    // Fallback to the bot's current facing if no enemy exists.
-    float angles[3];
-    GetClientEyeAngles(client, angles);
-    float yaw = angles[1];
-    while (yaw > 180.0) yaw -= 360.0;
-    while (yaw < -180.0) yaw += 360.0;
-
-    char recordingPaths[4][3][PLATFORM_MAX_PATH] = {
-        {
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_north.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_northB.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_northF.rec"
-        },
-        {
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_east.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_eastB.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_eastF.rec"
-        },
-        {
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_south.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_southB.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_southF.rec"
-        },
-        {
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_west.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_westB.rec",
-            "addons/sourcemod/data/botmimic/fake/fakedefuse_westF.rec"
-        }
-    };
-
-    // Select direction based on yaw
-    int direction;
-    char directionName[16];
-    if (bHasNearestEnemy)
+    if (!PickFakeDefuseRepositionPos(client, g_fFakeDefuseRepositionPos[client]))
     {
-        float absX = FloatAbs(fToEnemy[0]);
-        float absY = FloatAbs(fToEnemy[1]);
-
-        if (absY >= absX)
-        {
-            if (fToEnemy[1] >= 0.0)
-            {
-                direction = 0; // North (+Y)
-                strcopy(directionName, sizeof(directionName), "north");
-            }
-            else
-            {
-                direction = 2; // South (-Y)
-                strcopy(directionName, sizeof(directionName), "south");
-            }
-        }
-        else
-        {
-            if (fToEnemy[0] >= 0.0)
-            {
-                direction = 1; // East (+X)
-                strcopy(directionName, sizeof(directionName), "east");
-            }
-            else
-            {
-                direction = 3; // West (-X)
-                strcopy(directionName, sizeof(directionName), "west");
-            }
-        }
-    }
-    else if (yaw >= -45.0 && yaw < 45.0)
-    {
-        direction = 0; // North
-        strcopy(directionName, sizeof(directionName), "north");
-    }
-    else if (yaw >= 45.0 && yaw < 135.0)
-    {
-        direction = 1; // East
-        strcopy(directionName, sizeof(directionName), "east");
-    }
-    else if (yaw >= 135.0 || yaw < -135.0)
-    {
-        direction = 2; // South
-        strcopy(directionName, sizeof(directionName), "south");
-    }
-    else
-    {
-        direction = 3; // West
-        strcopy(directionName, sizeof(directionName), "west");
+        g_fFakeDefuseRepositionPos[client][0] = 0.0;
+        g_fFakeDefuseRepositionPos[client][1] = 0.0;
+        g_fFakeDefuseRepositionPos[client][2] = 0.0;
     }
 
-    // Randomly pick one of the three recordings for the direction
-    int variation = GetRandomInt(0, 2);
-    char recordingPath[PLATFORM_MAX_PATH];
-    strcopy(recordingPath, sizeof(recordingPath), recordingPaths[direction][variation]);
+    AbortDefuseAttemptForCooldown(client);
 
-    BMError error = BotMimic_PlayRecordFromFileRelative(client, recordingPath);
-    if (error != BM_NoError)
-    {
-        PrintToServer("[FAKEDEFUSE] Failed to play recording %s for bot %d: error %d", recordingPath, client, error);
-    }
-    else
-    {
-        PrintToServer("[FAKEDEFUSE] Playing %s for bot %d (direction: %s, yaw: %.2f)", recordingPath, client, directionName, yaw);
-    }
+    PrintToServer("[FAKEDEFUSE] Bot %d cancelled fake defuse; suppressing re-defuse for %.2f seconds.", client, cooldown);
 
-    CreateTimer(6.5, Timer_ResetFakeDefuse, userid);
+    CreateTimer(cooldown, Timer_ResetFakeDefuse, userid);
 
     return Plugin_Handled;
 }
@@ -1497,7 +1872,16 @@ public Action Timer_ResetFakeDefuse(Handle timer, any userid)
     }
 
     g_bIsFakeDefusing[client] = false;
-    PrintToServer("[FAKEDEFUSE] Fake defuse ended for bot %d", client);
+    if (GetGameTime() >= g_fFakeDefuseCooldownUntil[client])
+    {
+        g_fFakeDefuseCooldownUntil[client] = 0.0;
+        g_fNextFakeDefuseAbort[client] = 0.0;
+        g_fFakeDefuseRepositionPos[client][0] = 0.0;
+        g_fFakeDefuseRepositionPos[client][1] = 0.0;
+        g_fFakeDefuseRepositionPos[client][2] = 0.0;
+        ResumeDefuseObjectiveAfterCooldown(client);
+    }
+    PrintToServer("[FAKEDEFUSE] Fake defuse cooldown ended for bot %d", client);
     return Plugin_Stop;
 }
 
@@ -2082,7 +2466,40 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 	
 	DHookGetParamString(hParams, 1, szDesc, sizeof(szDesc));
 	
-	if (strcmp(szDesc, "Defuse bomb") == 0 || strcmp(szDesc, "Use entity") == 0 || strcmp(szDesc, "Open door") == 0 || strcmp(szDesc, "Hostage") == 0)
+	if (strcmp(szDesc, "Defuse bomb") == 0)
+	{
+		if (IsFakeDefuseSuppressionActive(client))
+		{
+			float fLookPos[3];
+			bool bHasLookPos = false;
+
+			if (g_bFakeDefuseReturning[client] || g_bFakeDefuseForcingUse[client])
+			{
+				bHasLookPos = GetFakeDefuseBombOrigin(client, fLookPos);
+			}
+			else if (GetVectorLength(g_fFakeDefuseRepositionPos[client]) > 0.0)
+			{
+				Array_Copy(g_fFakeDefuseRepositionPos[client], fLookPos, 3);
+				bHasLookPos = true;
+			}
+
+			if (bHasLookPos)
+			{
+				fLookPos[2] += 48.0;
+				DHookSetParamString(hParams, 1, "Fake defuse cooldown");
+				DHookSetParamVector(hParams, 2, fLookPos);
+				DHookSetParam(hParams, 3, PRIORITY_HIGH);
+				DHookSetParam(hParams, 4, 0.25);
+				DHookSetParam(hParams, 6, 8.0);
+				return MRES_ChangedHandled;
+			}
+
+			return MRES_Supercede;
+		}
+
+		return MRES_Ignored;
+	}
+	else if (strcmp(szDesc, "Use entity") == 0 || strcmp(szDesc, "Open door") == 0 || strcmp(szDesc, "Hostage") == 0)
 		return MRES_Ignored;
 	else if (strcmp(szDesc, "Avoid Flashbang") == 0)
 	{
@@ -2241,6 +2658,11 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 		GetClientAbsOrigin(client, g_fBotOrigin[client]);
 		g_iActiveWeapon[client] = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 		if (!IsValidEntity(g_iActiveWeapon[client])) return Plugin_Continue;
+
+		if (GetClientTeam(client) == CS_TEAM_CT && g_bBombPlanted)
+		{
+			SuppressDefuseAttemptDuringCooldown(client, iButtons);
+		}
 
         if (g_bFreezetimeEnd && g_fTimeElapsed < 10.0)
             iButtons &= ~IN_SPEED;
@@ -2848,57 +3270,6 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				    }
 				}
 
-				if (BotMimic_IsPlayerMimicing(client) && g_bIsFakeDefusing[client])
-				{
-				    float fClientOrigin[3];
-				    GetClientAbsOrigin(client, fClientOrigin);
-
-				    bool bEnemyNearby = false;
-				    float fEnemyDir[3];
-
-				    for (int i = 1; i <= MaxClients; i++)
-				    {
-				        if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) == GetClientTeam(client))
-				            continue;
-
-				        float fEnemyOrigin[3];
-				        GetClientAbsOrigin(i, fEnemyOrigin);
-
-				        float fDist = GetVectorDistance(fClientOrigin, fEnemyOrigin);
-
-				        if (fDist < 1200.0)
-				        {
-				            int iButtons = GetClientButtons(i);
-				            float fEnemyVel[3];
-				            GetEntPropVector(i, Prop_Data, "m_vecVelocity", fEnemyVel);
-
-				            bool bIsShooting = (iButtons & IN_ATTACK) != 0;
-				            bool bIsRunning = GetVectorLength(fEnemyVel) > 135.0; // running threshold
-
-				            if (bIsShooting || bIsRunning)
-				            {
-				                bEnemyNearby = true;
-
-				                SubtractVectors(fEnemyOrigin, fClientOrigin, fEnemyDir);
-				                NormalizeVector(fEnemyDir, fEnemyDir);
-				                break;
-				            }
-				        }
-				    }
-
-				    if (bEnemyNearby)
-				    {
-				        BotMimic_StopPlayerMimic(client);
-				        PrintToServer("[FAKEDEFUSE] Enemy nearby - stopping recording");
-				        g_bIsFakeDefusing[client] = false;
-
-				        float fLookAngles[3];
-				        GetVectorAngles(fEnemyDir, fLookAngles);
-				        TeleportEntity(client, NULL_VECTOR, fLookAngles, NULL_VECTOR);
-				        return Plugin_Stop;
-				    }
-				}
-				
 				bool bScriptedGrenadeInProgress = g_iDoingSmokeNum[client] != -1 || g_bThrowGrenade[client] || BotMimic_IsPlayerMimicing(client);
 				int iWeaponSlot = eItems_GetWeaponSlotByDefIndex(iDefIndex);
 
