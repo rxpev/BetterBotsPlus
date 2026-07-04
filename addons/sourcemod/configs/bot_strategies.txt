@@ -1167,4 +1167,134 @@
             }
         }
     }
+    "de_vertigo"
+    {
+        "B Execute"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Execute Flasher"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-4095.968750 -835.130615 11817.5937508"
+                "utility1" "46 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Execute Flasher.rec"
+            }
+            "B Execute Smoker"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-2442.831054 -1033.535156 11743.968750"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Execute Smoker.rec"
+            }
+            "B Execute Fake Smoker"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-2385.968750 -692.113159 11560.442382"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Execute Fake Smoker.rec"
+            }
+            "B Execute Quad Molly"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-2368.968750 -502.778320 11565.752929"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Execute Quad Molly.rec"
+            }
+            "B Execute Regular"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-1878.841674 -787.296875 11558.890625"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Execute Regular.rec"
+            }
+        }
+        "B Split"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "B Split Elevator Smoker"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-2548.281005 -1129.699340 11743.968750"
+                "utility1" "45 1"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Split Elevator Smoker.rec"
+            }
+            "B Split Mid Flasher"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-2368.968750 -628.475402 11545.964843"
+                "utility2" "43 2"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Split Mid Flasher.rec"
+            }
+            "B Split Mid Rusher"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-2546.407226 -1029.001953 11743.968750"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Split Mid Rusher.rec"
+            }
+            "B Split Mid Regular"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-4095.968994 -732.997497 11946.437500"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Split Mid Regular.rec"
+            }
+            "B Split Quad Molly"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-1875.156860 -782.296936 11556.450195"
+                "utility1" "46 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/B Split Quad Molly.rec"
+            }
+        }
+        "A Rush"
+        {
+            "team" "T"
+            "chance" "15.0"
+            "minplayers" "5"
+
+            "A Rush Entry Flasher"
+            {
+                "position" "-1293.400024 -1328.160034 11488.031250"
+                "lookat" "-2368.968750 -509.951843 11550.146484"
+                "utility1" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/A Rush Entry Flasher.rec"
+            }
+            "A Rush Ramp Smoker"
+            {
+                "position" "-1296.709960 -1392.430053 11488.031250"
+                "lookat" "-2136.121337 -641.031250 11566.166992"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/A Rush Ramp Smoker.rec"
+            }
+            "A Rush Site Smoker"
+            {
+                "position" "-1332.040039 -1453.239990 11488.031250"
+                "lookat" "-1920.947998 -787.885498 11559.806640"
+                "utility1" "45 1"
+                "utility2" "43 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/A Rush Site Smoker.rec"
+            }
+            "A Rush Spawn Smoke"
+            {
+                "position" "-1467.469970 -1428.660034 11488.031250"
+                "lookat" "-2523.968750 -1273.697387 11558.796875"
+                "utility1" "45 1"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/A Rush Spawn Smoke.rec"
+            }
+            "A Rush Regular"
+            {
+                "position" "-1405.829956 -1455.430053 11488.031250"
+                "lookat" "-1888.923583 -787.296997 11563.175781"
+                "replay" "addons/sourcemod/data/botmimic/strategies/de_vertigo/A Rush Regular.rec"
+            }
+        }
+    }
 }
