@@ -44,6 +44,9 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define CT_DEFAULT_THREAT_SOUND_MAX_DIST 900.0
 #define CT_DEFAULT_THREAT_SOUND_FRONT_DOT 0.35
 #define CT_DEFAULT_THREAT_SOUND_COOLDOWN 1.0
+#define T_IGL_PISTOL_STRATEGY_MENU_CHANCE 75.0
+#define T_IGL_NORMAL_STRATEGY_MENU_CHANCE 35.0
+#define T_IGL_STRATEGY_MENU_CLOSE_DELAY 8.0
 #define DROPPED_PRIMARY_PICKUP_MAX_DIST 500.0
 #define T_POSTPLANT_ARRIVE_DISTANCE 16.0
 #define T_POSTPLANT_ASSIGN_CHANCE 75.0
@@ -220,7 +223,9 @@ bool g_bStrategyActive = false;
 bool g_bStrategyStarted = false;
 bool g_bStrategySelectionPending = false;
 bool g_bStrategySelectionRolled = false;
+bool g_bIGLTStrategyMenuPending = false;
 int g_iActiveStrategy = -1;
+int g_iIGLTStrategyClientUserId = 0;
 int g_iStrategyRoleClient[MAX_STRATEGY_ROLES];
 bool g_bStrategyRoleSkipped[MAX_STRATEGY_ROLES];
 int g_iClientStrategyRole[MAXPLAYERS + 1];
@@ -912,6 +917,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	ClearIGLCTDefaultSelection();
 	g_iPlantedBombSite = DEFAULT_SITE_UNKNOWN;
 	ClearActiveStrategy(false);
+	ClearIGLTStrategySelection();
 	g_bStrategySelectionRolled = false;
 	
 	for (int i = 1; i <= MaxClients; i++)
@@ -998,6 +1004,7 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 {
     ClearActiveStrategy(false);
+    CloseIGLTStrategyMenu(true);
     g_bCTDefaultsAssigned = false;
     CloseIGLCTDefaultMenu(true);
     g_bRoundEnded = true;
@@ -1106,8 +1113,16 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
         CreateTimer(0.2, Timer_AssignCTDefaults, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
 
-    TrySelectStrategy();
-    if (!g_bStrategyActive && g_bStrategySelectionPending)
+    if (IsIGLTStrategyControlEnabled())
+    {
+        TryShowIGLTStrategyMenu();
+    }
+    else
+    {
+        TrySelectStrategy();
+    }
+
+    if (!g_bStrategyActive && g_bStrategySelectionPending && !g_bIGLTStrategyMenuPending)
     {
         CreateTimer(0.2, Timer_SelectStrategy, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
@@ -2725,6 +2740,8 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			{
 				return Plugin_Changed;
 			}
+
+			CancelPrePlantNadeForIGLTStrategyMenu(client);
 				
 			if (IsItMyChance(0.5) && g_iDoingSmokeNum[client] == -1 && g_iHoldingAngleNum[client] == -1 && CanUseGrenadeWhileMovingToCTDefault(client))
 		    {
@@ -3745,7 +3762,7 @@ bool IsPistolStrategyRound()
     return g_iCurrentRound == 0 || g_iCurrentRound == 12;
 }
 
-bool AreNormalStrategiesDisabledByFaceit()
+bool IsFaceitModeEnabled()
 {
     if (g_hCvarIsFaceit == null)
     {
@@ -3753,6 +3770,11 @@ bool AreNormalStrategiesDisabledByFaceit()
     }
 
     return g_hCvarIsFaceit != null && g_hCvarIsFaceit.IntValue == 1;
+}
+
+bool AreNormalStrategiesDisabledByFaceit()
+{
+    return IsFaceitModeEnabled();
 }
 
 bool IsWeaponDropPendingForStrategyTeam(int team)
@@ -4123,7 +4145,7 @@ bool ParseUtilityRequirement(const char[] szValue, int &defIndex, int &amount)
 
 public Action Timer_SelectStrategy(Handle timer, any data)
 {
-    if (g_bRoundEnded || g_bStrategyActive || !g_bStrategySelectionPending)
+    if (g_bRoundEnded || g_bStrategyActive || !g_bStrategySelectionPending || IsIGLTStrategyControlEnabled())
     {
         return Plugin_Stop;
     }
@@ -4174,6 +4196,13 @@ void TrySelectStrategy()
 {
     if (g_bStrategyActive || g_bStrategySelectionRolled || IsWarmupPeriod() || !g_bFreezetimeEnd || g_iMaxStrategies <= 0)
         return;
+
+    if (IsIGLTStrategyControlEnabled())
+    {
+        if (!g_bIGLTStrategyMenuPending)
+            g_bStrategySelectionPending = false;
+        return;
+    }
 
     if (!IsPistolStrategyRound() && IsWeaponDropPendingForStrategyTeam(CS_TEAM_T))
         return;
@@ -4800,6 +4829,208 @@ bool HasStrategyForTeam(int team)
     return false;
 }
 
+bool IsIGLControlEnabled()
+{
+    if (g_hCvarIsIGL == null)
+        g_hCvarIsIGL = FindConVar("isIGL");
+
+    return g_hCvarIsIGL != null && g_hCvarIsIGL.IntValue == 1 && !IsFaceitModeEnabled();
+}
+
+int GetIGLTStrategyClient()
+{
+    int savedClient = GetClientOfUserId(g_iIGLTStrategyClientUserId);
+    if (IsValidClient(savedClient) && !IsFakeClient(savedClient) && IsPlayerAlive(savedClient) && GetClientTeam(savedClient) == CS_TEAM_T)
+        return savedClient;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i) && !IsFakeClient(i) && IsPlayerAlive(i) && GetClientTeam(i) == CS_TEAM_T)
+            return i;
+    }
+
+    return 0;
+}
+
+bool IsIGLTStrategyControlEnabled()
+{
+    return IsIGLControlEnabled() && GetIGLTStrategyClient() != 0;
+}
+
+void ClearIGLTStrategySelection()
+{
+    g_bIGLTStrategyMenuPending = false;
+    g_iIGLTStrategyClientUserId = 0;
+}
+
+bool CanShowStrategyInIGLMenu(int strat)
+{
+    if (g_iStrategyTeam[strat] != CS_TEAM_T)
+        return false;
+
+    if (!CanAssignRequiredStrategyUtility(strat))
+        return false;
+
+    if (!CanTryStrategyWithAvailablePlayers(strat))
+        return false;
+
+    return true;
+}
+
+bool ShouldBlockPrePlantNadesForIGLTStrategyMenu(int client)
+{
+    if (!g_bIGLTStrategyMenuPending)
+        return false;
+
+    int iglClient = GetClientOfUserId(g_iIGLTStrategyClientUserId);
+    if (!IsValidClient(iglClient) || !IsPlayerAlive(iglClient))
+        return false;
+
+    return GetClientTeam(client) == GetClientTeam(iglClient);
+}
+
+void CancelPrePlantNadeForIGLTStrategyMenu(int client)
+{
+    if (!ShouldBlockPrePlantNadesForIGLTStrategyMenu(client))
+        return;
+
+    int nade = g_iDoingSmokeNum[client];
+    if (nade < 0 || nade >= g_iPostPlantNadesStartIndex)
+        return;
+
+    g_iDoingSmokeNum[client] = -1;
+    g_bThrowGrenade[client] = false;
+    g_fNadeClaimTime[nade] = 0.0;
+
+    if (IsValidClient(client) && IsFakeClient(client) && IsPlayerAlive(client))
+    {
+        if (BotMimic_IsPlayerMimicing(client))
+            BotMimic_StopPlayerMimic(client);
+
+        BotCancelMoveTo(client);
+        BotEquipBestWeapon(client, true);
+    }
+}
+
+void TryShowIGLTStrategyMenu()
+{
+    g_bStrategySelectionRolled = true;
+
+    if (g_bStrategyActive || g_bRoundEnded || g_bBombPlanted || IsWarmupPeriod() || !g_bFreezetimeEnd || g_iMaxStrategies <= 0)
+    {
+        g_bStrategySelectionPending = false;
+        return;
+    }
+
+    float chance = IsPistolStrategyRound() ? T_IGL_PISTOL_STRATEGY_MENU_CHANCE : T_IGL_NORMAL_STRATEGY_MENU_CHANCE;
+    if (!IsItMyChance(chance))
+    {
+        g_bStrategySelectionPending = false;
+        PrintToServer("[STRATS] T IGL strategy selector did not appear.");
+        return;
+    }
+
+    int client = GetIGLTStrategyClient();
+    if (client == 0)
+    {
+        g_bStrategySelectionPending = false;
+        return;
+    }
+
+    Menu menu = CreateMenuEx(GetMenuStyleHandle(MenuStyle_Radio), MenuHandler_IGLTStrategy);
+    menu.SetTitle("Strategy Selector");
+    menu.ExitButton = true;
+
+    int optionCount = 0;
+    for (int strat = 0; strat < g_iMaxStrategies; strat++)
+    {
+        if (!CanShowStrategyInIGLMenu(strat))
+            continue;
+
+        char info[8];
+        IntToString(strat, info, sizeof(info));
+        menu.AddItem(info, g_szStrategyName[strat]);
+        optionCount++;
+    }
+
+    if (optionCount <= 0)
+    {
+        delete menu;
+        g_bStrategySelectionPending = false;
+        PrintToServer("[STRATS] T IGL strategy selector had no runnable strategies.");
+        return;
+    }
+
+    g_iIGLTStrategyClientUserId = GetClientUserId(client);
+    g_bIGLTStrategyMenuPending = true;
+    g_bStrategySelectionPending = true;
+    menu.Display(client, RoundToNearest(T_IGL_STRATEGY_MENU_CLOSE_DELAY));
+    CreateTimer(T_IGL_STRATEGY_MENU_CLOSE_DELAY, Timer_CloseIGLTStrategyMenu, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void CloseIGLTStrategyMenu(bool cancelDisplay)
+{
+    int client = GetClientOfUserId(g_iIGLTStrategyClientUserId);
+    if (cancelDisplay && client != 0 && IsClientInGame(client))
+        CancelClientMenu(client, true);
+
+    g_bIGLTStrategyMenuPending = false;
+    g_bStrategySelectionPending = false;
+}
+
+public Action Timer_CloseIGLTStrategyMenu(Handle timer, any data)
+{
+    if (g_bRoundEnded || g_bBombPlanted || !g_bIGLTStrategyMenuPending)
+        return Plugin_Stop;
+
+    CloseIGLTStrategyMenu(true);
+    PrintToServer("[STRATS] T IGL did not select a strategy.");
+    return Plugin_Stop;
+}
+
+public int MenuHandler_IGLTStrategy(Menu menu, MenuAction action, int param1, int param2)
+{
+    if (action == MenuAction_Select)
+    {
+        char info[8];
+        menu.GetItem(param2, info, sizeof(info));
+
+        int strat = StringToInt(info);
+        CloseIGLTStrategyMenu(false);
+
+        if (strat < 0 || strat >= g_iMaxStrategies || !CanShowStrategyInIGLMenu(strat))
+        {
+            PrintToServer("[STRATS] T IGL selected strategy is no longer runnable.");
+            return 0;
+        }
+
+        if (TryAssignStrategy(strat))
+        {
+            g_bStrategyActive = true;
+            g_bStrategyStarted = false;
+            g_bStrategySelectionPending = false;
+            g_iActiveStrategy = strat;
+            g_fStrategyAssignTime = GetGameTime();
+            PrintToServer("[STRATS] T IGL selected strategy %s.", g_szStrategyName[strat]);
+        }
+        else
+        {
+            PrintToServer("[STRATS] T IGL failed to assign strategy %s.", g_szStrategyName[strat]);
+        }
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        if (g_bIGLTStrategyMenuPending)
+            CloseIGLTStrategyMenu(false);
+    }
+    else if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+
+    return 0;
+}
+
 bool IsPlayerCarryingBomb(int client)
 {
     if (!IsValidClient(client) || !IsPlayerAlive(client) || GetClientTeam(client) != CS_TEAM_T)
@@ -5038,10 +5269,7 @@ bool IsClientAtCTDefaultSpot(int client)
 
 bool IsIGLCTDefaultControlEnabled()
 {
-    if (g_hCvarIsIGL == null)
-        g_hCvarIsIGL = FindConVar("isIGL");
-
-    return g_hCvarIsIGL != null && g_hCvarIsIGL.IntValue == 1;
+    return IsIGLControlEnabled() && GetIGLCTDefaultClient() != 0;
 }
 
 void ClearIGLCTDefaultSelection()
@@ -6511,6 +6739,7 @@ public int GetNearestGrenade(int client)
     if (AreAllEnemiesDead(client)) return -1;
     if (g_bBombExploded) return -1;
     if (g_fRoundTimeRemaining < 0.0) return -1;
+    if (ShouldBlockPrePlantNadesForIGLTStrategyMenu(client)) return -1;
 
     int team = GetClientTeam(client);
     bool bLastOnTeam =
