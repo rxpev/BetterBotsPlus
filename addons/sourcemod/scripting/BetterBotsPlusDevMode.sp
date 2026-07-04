@@ -1,4 +1,4 @@
-#pragma semicolon 1
+﻿#pragma semicolon 1
 
 #include <sourcemod>
 #include <sdkhooks>
@@ -345,16 +345,12 @@ enum GamePhase
 
 public Plugin myinfo = 
 {
-	name = "BetterBotsPlus * LIGA", 
+	name = "BetterBotsPlus * LIGA DevMode", 
 	author = "Rxpev", 
-	description = "Edited BetterBotsPlus Plugin fit for use with LIGA: Pro Journey", 
+	description = "DevMode BetterBotsPlus LIGA build with debug logging enabled", 
 	version = "1.0.0", 
 	url = "http://steamcommunity.com/id/rxpev"
 };
-
-stock void NoDebugPrint()
-{
-}
 
 public void OnPluginStart()
 {	
@@ -634,7 +630,7 @@ public Action Timer_CheckPlayer(Handle hTimer, any data)
 	            if (bTForce || bCTForce)
 	    	{
 	        g_bBotHasForcedBuy[i] = true;
-	        NoDebugPrint();
+	        PrintToServer("[FORCEBUY] %s Bot %d forcing buy", (iTeam == CS_TEAM_T) ? "T" : "CT", i);
 
 		        if (iTeam == CS_TEAM_T)
 		        {
@@ -1087,8 +1083,8 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_iCurrentBonusCT = GetLossBonus(g_iRoundsLostCT); // Get CT's current loss bonus
     g_iCurrentBonusT = GetLossBonus(g_iRoundsLostT); // Get T's current loss bonus
     ResetLossBonusOnOvertimeHalftime();
-    NoDebugPrint();
-	NoDebugPrint();
+    PrintToServer("[LOSSBONUS] CT Rounds Lost: %d, T Rounds Lost: %d", g_iRoundsLostCT, g_iRoundsLostT);
+	PrintToServer("[LOSSBONUS] CT Bonus: %d, T Bonus: %d", g_iCurrentBonusCT, g_iCurrentBonusT);
 }
 
 public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
@@ -1169,11 +1165,11 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
                 if (g_bAwaitingHumanAWPDrop[i])
                 {
                     BotMoveTo(i, fGunPos, FASTEST_ROUTE);
-                    NoDebugPrint();
+                    PrintToServer("[AWP DEBUG] AWPer %N rushing to user-dropped AWP (ent %d)", i, iAWP);
                 }
                 else
                 {
-                    NoDebugPrint();
+                    PrintToServer("[AWP DEBUG] AWPer %N looking at dropped AWP (ent %d)", i, iAWP);
                 }
             }
         }
@@ -1191,7 +1187,7 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
                 float fGunPos[3];
                 GetEntPropVector(iGun, Prop_Send, "m_vecOrigin", fGunPos);
                 BotLookAt(i, fGunPos);
-                NoDebugPrint();
+                PrintToServer("[AWP DEBUG] Donor %N looking at dropped rifle (ent %d)", i, iGun);
             }
         }
     }
@@ -1208,13 +1204,13 @@ public Action OnBombBeginPlant(Event event, const char[] name, bool dontBroadcas
 
     if (g_bDidFakePlant[client])
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEPLANT] client %d already faked a plant", client);
         return Plugin_Continue;
     }
 
     if (!IsEnemyWithinRange(client, FAKE_OBJECTIVE_ENEMY_RANGE))
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEPLANT] No enemy within %.0f units for client %d. Sticking to actual plant.", FAKE_OBJECTIVE_ENEMY_RANGE, client);
         return Plugin_Continue;
     }
 
@@ -1236,17 +1232,17 @@ public Action OnBombBeginPlant(Event event, const char[] name, bool dontBroadcas
 
     if (!ShouldFakePlantOnce(client, 75.0))
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEPLANT] client %d failed 75%% RNG", client);
         return Plugin_Continue;
     }
 
     if (g_fRoundTimeRemaining <= 12.0)
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEPLANT] Not enough time left in round: %.2f seconds", g_fRoundTimeRemaining);
         return Plugin_Continue;
     }
 
-    NoDebugPrint();
+    PrintToServer("[FAKEPLANT] client %d is performing FAKEPLANT", client);
     CreateTimer(GetRandomFloat(0.1, 0.25), Timer_CancelFakePlant, client);
     g_bDidFakePlant[client] = true;
 
@@ -1332,7 +1328,7 @@ public Action OnBombBeginDefuse(Event event, const char[] name, bool dontBroadca
     {
         g_bFakeDefuseReturning[client] = false;
         g_bIsFakeDefusing[client] = false;
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] Bot %d started real defuse after fake.", client);
         return Plugin_Continue;
     }
 
@@ -1364,20 +1360,20 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
 
     if (IsFakeDefuseCooldownActive(client))
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] client %d is on cooldown; sticking to normal AI instead of rolling another fake.", client);
         AbortDefuseAttemptForCooldown(client);
         return Plugin_Continue;
     }
 
     if (AreAllEnemiesDead(client)) 
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] All enemies are dead. Sticking to defuse without fake defuse.");
         return Plugin_Continue;
     }
 
     if (!IsEnemyWithinRange(client, FAKE_OBJECTIVE_ENEMY_RANGE))
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] No enemy within %.0f units for client %d. Sticking to actual defuse.", FAKE_OBJECTIVE_ENEMY_RANGE, client);
         return Plugin_Continue;
     }
 
@@ -1390,14 +1386,14 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
         {
             if (!IsItMyChance(FAKE_DEFUSE_CHANCE))
             {
-                NoDebugPrint();
+                PrintToServer("[FAKEDEFUSE] client %d failed %.0f%% RNG", client, FAKE_DEFUSE_CHANCE);
                 return Plugin_Continue;
             }
 
             float fakeCooldown = PickFakeDefuseCooldownForTimeLeft(client);
             if (fakeCooldown <= 0.0)
             {
-                NoDebugPrint();
+                PrintToServer("[FAKEDEFUSE] client %d does not have enough bomb time for a fake defuse cooldown (Time left: %.2f)", client, g_fTimeLeft);
                 return Plugin_Continue;
             }
 
@@ -1420,12 +1416,12 @@ public Action Timer_DelayedBombBeginDefuse(Handle timer, DataPack pack)
             } 
             else 
             {
-                NoDebugPrint();
+                PrintToServer("[FAKEDEFUSE] client %d is too close to teammates, sticking to actual defuse", client);
             }
         } 
         else 
         {
-            NoDebugPrint();
+            PrintToServer("[FAKEDEFUSE] client %d does not have enough time to fake defuse (Time left: %.2f)", client, g_fTimeLeft);
         }
     }
 
@@ -1692,7 +1688,10 @@ void HandleFakeDefuseReturnToBomb(int client)
         float fClientOrigin[3], fBombOrigin[3];
         GetClientAbsOrigin(client, fClientOrigin);
         GetFakeDefuseBombOrigin(client, fBombOrigin);
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] Bot %d returned to fake-defuse origin; forcing real defuse. bot=(%.1f %.1f %.1f) origin=(%.1f %.1f %.1f)",
+            client,
+            fClientOrigin[0], fClientOrigin[1], fClientOrigin[2],
+            fBombOrigin[0], fBombOrigin[1], fBombOrigin[2]);
         return;
     }
 
@@ -1766,7 +1765,7 @@ bool ClearFakeDefuseCooldownForDeadEnemies(int client)
         g_fFakeDefuseBombPos[client][0] = 0.0;
         g_fFakeDefuseBombPos[client][1] = 0.0;
         g_fFakeDefuseBombPos[client][2] = 0.0;
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] All enemies dead; cleared fake defuse cooldown for bot %d.", client);
         return true;
     }
 
@@ -1776,7 +1775,7 @@ bool ClearFakeDefuseCooldownForDeadEnemies(int client)
     SetDisposition(client, SELF_DEFENSE);
     BotMoveTo(client, fBombOrigin, FASTEST_ROUTE);
 
-    NoDebugPrint();
+    PrintToServer("[FAKEDEFUSE] All enemies dead; cleared fake defuse cooldown for bot %d and returning to bomb.", client);
     return true;
 }
 
@@ -1841,7 +1840,7 @@ public Action Timer_CancelFakeDefuse(Handle timer, DataPack pack)
 
     if (AreAllEnemiesDead(client))
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEDEFUSE] All enemies died before fake cancel; bot %d keeps real defuse.", client);
         return Plugin_Handled;
     }
 
@@ -1872,7 +1871,7 @@ public Action Timer_CancelFakeDefuse(Handle timer, DataPack pack)
 
     AbortDefuseAttemptForCooldown(client);
 
-    NoDebugPrint();
+    PrintToServer("[FAKEDEFUSE] Bot %d cancelled fake defuse; suppressing re-defuse for %.2f seconds.", client, cooldown);
 
     CreateTimer(cooldown, Timer_ResetFakeDefuse, userid);
 
@@ -1897,7 +1896,7 @@ public Action Timer_ResetFakeDefuse(Handle timer, any userid)
         g_fFakeDefuseRepositionPos[client][2] = 0.0;
         ResumeDefuseObjectiveAfterCooldown(client);
     }
-    NoDebugPrint();
+    PrintToServer("[FAKEDEFUSE] Fake defuse cooldown ended for bot %d", client);
     return Plugin_Stop;
 }
 
@@ -2052,7 +2051,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 	    else
 	    {
 
-	        NoDebugPrint();
+	        PrintToServer("[AWP_SAVER] Rifler %N has saved AWP for AWPer %N", donor, awper);
 
 	        if (awperIsHuman)
 	        {
@@ -2090,7 +2089,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
 	        if (awperHasRifle)
 	        {
-	            NoDebugPrint();
+	            PrintToServer("[AWP_SAVER] AWPer %N has rifle, swapping with rifler %N's saved AWP", awper, donor);
 
 	            g_bAWPDropQueued[awper] = true;
 	            DataPack pack1 = new DataPack();
@@ -2109,7 +2108,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 	        }
 	        else
 	        {
-	            NoDebugPrint();
+	            PrintToServer("[AWP_SAVER] AWPer %N has no rifle, rifler %N dropping saved AWP", awper, donor);
 
 	            g_bAWPDropQueued[donor] = true;
 	            DataPack pack = new DataPack();
@@ -2134,7 +2133,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
     if (!awperIsHuman && g_bHasSavedAWP[awper])
 	{
-	    NoDebugPrint();
+	    PrintToServer("[AWP DEBUG] AWPer %N already has saved AWP from rifler, skipping donation", awper);
 	    return Plugin_Stop;
 	}
 
@@ -2148,7 +2147,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
         if (StrEqual(weaponClass, "weapon_awp"))
         {
-            NoDebugPrint();
+            PrintToServer("[AWP DEBUG] Donor %N already has an AWP, dropping it to AWPer %N.", donor, awper);
 
             g_bAWPDropQueued[donor] = true;
             DataPack pack = new DataPack();
@@ -2177,7 +2176,8 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
     bool isCT = (team == CS_TEAM_CT);
 
-    NoDebugPrint();
+    PrintToServer("[AWP DEBUG] Donor=%N (money=%d, hasPrimary=%b) | AWPer=%N (money=%d, hasPrimary=%b)",
+        donor, donorMoney, donorHasPrimary, awper, awperMoney, awperHasPrimary);
 
     if (isCT)
     {
@@ -2186,7 +2186,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
         {
             AddMoney(donor, -awpPrice, true, true, "weapon_awp");
             CSGO_ReplaceWeapon(donor, CS_SLOT_PRIMARY, "weapon_awp");
-            NoDebugPrint();
+            PrintToServer("[AWP DEBUG] CT donor %N bought and will drop AWP", donor);
 
             g_bAWPDropQueued[donor] = true;
             DataPack pack = new DataPack();
@@ -2204,7 +2204,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
             if (IsValidEntity(donorPrimary))
             {
                 CS_DropWeapon(donor, donorPrimary, true);
-                NoDebugPrint();
+                PrintToServer("[AWP DEBUG] Donor %N dropped current primary before buying AWP", donor);
             }
 
             AddMoney(donor, -awpPrice, true, true, "weapon_awp");
@@ -2274,7 +2274,7 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
             if (IsValidEntity(donorPrimary))
             {
                 CS_DropWeapon(donor, donorPrimary, true);
-                NoDebugPrint();
+                PrintToServer("[AWP DEBUG] Donor %N dropped current primary before buying AWP", donor);
             }
 
             AddMoney(donor, -awpPrice, true, true, "weapon_awp");
@@ -2354,7 +2354,7 @@ public Action Timer_BuySelfGun(Handle timer, any client)
     {
         AddMoney(client, -price, true, true, gun);
         CSGO_ReplaceWeapon(client, CS_SLOT_PRIMARY, gun);
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] %N bought self gun %s after drop", client, gun);
     }
     return Plugin_Stop;
 }
@@ -2380,7 +2380,7 @@ public Action Timer_AWPGiveDrop(Handle timer, DataPack pack)
     g_bDropWeapon[dropper] = true;
     g_bAWPDropQueued[dropper] = false;
 
-    NoDebugPrint();
+    PrintToServer("[AWP DEBUG] Queued drop: %N will drop toward %N", dropper, target);
     return Plugin_Stop;
 }
 
@@ -2398,13 +2398,13 @@ public Action Timer_BuyUtility(Handle timer, any client)
         SetEntProp(client, Prop_Send, "m_ArmorValue", 100);
         SetEntProp(client, Prop_Send, "m_bHasHelmet", 1);
 
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] %N FORCED full armor (money left: %d)", client, money - 1000);
     }
     else if (money >= 650) {
         AddMoney(client, -650, true, true, "vest");
         SetEntProp(client, Prop_Send, "m_ArmorValue", 100);
         SetEntProp(client, Prop_Send, "m_bHasHelmet", 0);
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] %N FORCED kevlar only (money left: %d)", client, money - 650);
     }
     
     ForceBuyGrenadesDelayed(client);
@@ -2417,7 +2417,7 @@ public Action Timer_ClearBuyDelay(Handle timer, any client)
     if (IsValidClient(client))
     {
         g_bBuyDelayed[client] = false;
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] Safety: Cleared buy delay for %N", client);
     }
     return Plugin_Stop;
 }
@@ -2553,13 +2553,13 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		if (ShouldReleaseCTDefaultForThreatSound(client, fNoisePosition, bIsWalking))
 		{
 			ClearClientCTDefault(client, true);
-			NoDebugPrint();
+			PrintToServer("[DEFAULTS] %N left CT default after a nearby side/back sound.", client);
 		}
 
 		if (ShouldReleaseTPostPlantForThreatSound(client, fNoisePosition, bIsWalking))
 		{
 			ClearClientTPostPlant(client, true);
-			NoDebugPrint();
+			PrintToServer("[POSTPLANT] %N left postplant after a nearby side/back sound.", client);
 		}
 
 		if(BotMimic_IsPlayerMimicing(client) && !g_bIsFakeDefusing[client] && !IsNoiseProtectedMimic(client))
@@ -2592,13 +2592,13 @@ public MRESReturn CCSBot_SetLookAt(int client, DHookParam hParams)
 		if (ShouldReleaseCTDefaultForThreatSound(client, fPos, false))
 		{
 			ClearClientCTDefault(client, true);
-			NoDebugPrint();
+			PrintToServer("[DEFAULTS] %N left CT default after nearby side/back gunfire.", client);
 		}
 
 		if (ShouldReleaseTPostPlantForThreatSound(client, fPos, false))
 		{
 			ClearClientTPostPlant(client, true);
-			NoDebugPrint();
+			PrintToServer("[POSTPLANT] %N left postplant after nearby side/back gunfire.", client);
 		}
 		
 		fPos[2] += 25.0;
@@ -2769,7 +2769,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				    availableAngle = GetRandomAngle();
 				    if (availableAngle != -1)
 				    {
-				        NoDebugPrint();
+				        PrintToServer("[ANGLES] Bot is moving to random angle %d (20%% chance)", client, availableAngle);
 				    }
 				} 
 				else 
@@ -2783,11 +2783,11 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				    g_iHoldingAngleNum[client] = availableAngle;
 				    g_bAngleBlock[client] = true; 
 				    CreateTimer(30.0, ResetAngleBlock, client);
-				    NoDebugPrint();
+				    PrintToServer("[ANGLES] Bot is moving to nearest angle %d", client, availableAngle);
 				}
 				else
 				{
-				    NoDebugPrint();
+				    PrintToServer("[ERROR] No valid angle found for bot %d", client);
 				    g_iHoldingAngleNum[client] = -1; 
 				}
 			}
@@ -2827,7 +2827,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 		                    {
 		                    	BotMimic_StopPlayerMimic(client);
 
-		                        NoDebugPrint();
+		                        PrintToServer("[ANGLES] Bot at %d is abandoning angle %d due to smoke.", client, g_iHoldingAngleNum[client]);
 
 		                        g_iHoldingAngleNum[client] = -1;
 		                    }
@@ -2865,7 +2865,8 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 
 			                    CreateTimer(15.0, ResetAngleBlock, client);
 
-			                    NoDebugPrint();
+			                    PrintToServer("[PEEKS] Bot %d (%s) assigned early peek #%d (Chance %.1f%% | Overtime: %d)",
+			                        client, (team == CS_TEAM_CT) ? "CT" : "T", peek, fPeekChance, iOvertimePlaying);
 			                }
 			            }
 			        }
@@ -2892,7 +2893,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			        ClearFlashDodgeState(client);
 			        BotMimic_PlayRecordFromFile(client, szReplayPath);
 			        g_bDoingEarlyPeekMimic[client] = true;
-			        NoDebugPrint();
+			        PrintToServer("[PEEKS] Bot %d started mimic for peek #%d (%s)", client, peek, szReplayPath);
 
 			        g_bDoingPeek[client] = false;
 			        g_iCurrentPeekNum[client] = -1;
@@ -3027,7 +3028,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			                g_bAwaitingHumanAWPDrop[client] = false;
 			                g_iHumanAWPDropDonor[client] = 0;
 			                g_bBuyDelayed[client] = false;
-			                NoDebugPrint();
+			                PrintToServer("[AWP DEBUG] AWPer %N picked up donated user AWP, removing buy delay", client);
 			            }
 			        }
 			        else if (!bMovingToReservedPrimary && !IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
@@ -3207,7 +3208,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 					    if (!g_bDidRun[client])
 					    {
 					        g_bDidRun[client] = true;
-					        NoDebugPrint();
+					        PrintToServer("[RETAKE] Bot %d discovered - now runs", client);
 					    }
 					}
 		        	if (g_fTimeLeft < 26.0)
@@ -3216,7 +3217,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 				        if (!g_bDidRun[client])
 				        {
 				        	g_bDidRun[client] = true;
-				        	NoDebugPrint();
+				        	PrintToServer("[RETAKE] Little time on the bomb - CT Bots now run");
 				        }
 		        	}
 		        	else if (aliveCTs >= 4 && aliveTs == 1)
@@ -3225,7 +3226,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 		        		if (!g_bDidRun[client])
 		        		{
 		        			g_bDidRun[client] = true;
-		        			NoDebugPrint();
+		        			PrintToServer("[RETAKE] 4v1 - CT Bots now run");
 		        		}
 		        	}
 		        }
@@ -3422,7 +3423,7 @@ public Action OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
     if (IsValidClient(victim) && IsFakeClient(victim) && !IsPlayerAlive(victim) && g_fBombsiteDisableTime > 0.0 && GetGameTime() - g_fBombsiteDisableTime <= 5.0 && GetClientTeam(victim) == CS_TEAM_T)
     {
-        NoDebugPrint();
+        PrintToServer("[FAKEPLANT] Bot %d died, resetting Bombsite Timer", victim);
         EnableBombSites();
     }
 
@@ -3577,7 +3578,7 @@ void ParseMapNades(const char[] szMap, bool bPistolNades)
     
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("Configuration file %s is not found.", szPath);
         return;
     }
     
@@ -3586,21 +3587,21 @@ void ParseMapNades(const char[] szMap, bool bPistolNades)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Unable to parse Key Values file %s.", szPath);
         return;
     }
     
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("No nades found for %s.", szMap);
         return;
     }
     
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Nades are not configured right for %s.", szMap);
         return;
     }
     
@@ -3659,26 +3660,26 @@ void ParsePostPlantNades(const char[] szMap)
     BuildPath(Path_SM, szPath, sizeof(szPath), "configs/bot_nades_postplant.txt");
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("Configuration file %s is not found.", szPath);
         return;
     }
     KeyValues kv = new KeyValues("PostPlantNades");
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Unable to parse Key Values file %s.", szPath);
         return;
     }
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("No post-plant nades found for %s.", szMap);
         return;
     }
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Post-plant nades are not configured right for %s.", szMap);
         return;
     }
     
@@ -3811,7 +3812,7 @@ void ParseMapDefaults(const char[] szMap)
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] Configuration file %s not found.", szPath);
         return;
     }
 
@@ -3820,21 +3821,21 @@ void ParseMapDefaults(const char[] szMap)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] Unable to parse KeyValues file %s.", szPath);
         return;
     }
 
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] No defaults found for %s.", szMap);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] Defaults not configured correctly for %s.", szMap);
         return;
     }
 
@@ -3861,7 +3862,7 @@ void ParseMapDefaults(const char[] szMap)
 
     delete kv;
     g_iMaxDefaults = i;
-    NoDebugPrint();
+    PrintToServer("[DEFAULTS] Loaded %d default spots for %s.", g_iMaxDefaults, szMap);
 }
 
 void ParseMapAngles(const char[] szMap)
@@ -3871,7 +3872,7 @@ void ParseMapAngles(const char[] szMap)
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("Configuration file %s not found.", szPath);
         return;
     }
 
@@ -3880,21 +3881,21 @@ void ParseMapAngles(const char[] szMap)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Unable to parse KeyValues file %s.", szPath);
         return;
     }
 
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("No angles found for %s.", szMap);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Angles not configured correctly for %s.", szMap);
         return;
     }
 
@@ -3923,7 +3924,7 @@ void ParseMapPeeks(const char[] szMap)
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("[PEEKS] Configuration file %s not found.", szPath);
         return;
     }
 
@@ -3932,21 +3933,21 @@ void ParseMapPeeks(const char[] szMap)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[PEEKS] Unable to parse KeyValues file %s.", szPath);
         return;
     }
 
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[PEEKS] No peeks found for map %s.", szMap);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[PEEKS] Peeks not configured correctly for map %s.", szMap);
         return;
     }
 
@@ -3978,7 +3979,7 @@ void ParseMapStrategies(const char[] szMap)
 
     if (!bPistolRound && AreNormalStrategiesDisabledByFaceit())
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Normal strategies disabled because isFaceit is set to 1.");
         return;
     }
 
@@ -3995,7 +3996,7 @@ void ParseMapStrategies(const char[] szMap)
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Configuration file %s not found.", szPath);
         return;
     }
 
@@ -4004,21 +4005,21 @@ void ParseMapStrategies(const char[] szMap)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[STRATS] Unable to parse KeyValues file %s.", szPath);
         return;
     }
 
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[STRATS] No strategies found for map %s.", szMap);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[STRATS] Strategies not configured correctly for %s.", szMap);
         return;
     }
 
@@ -4059,7 +4060,10 @@ void ParseMapStrategies(const char[] szMap)
             kv.GoBack();
         }
 
-        NoDebugPrint();
+        PrintToServer("[STRATS] Loaded %s strategy %s with %d roles.",
+            IsPistolStrategyRound() ? "pistol" : "normal",
+            g_szStrategyName[strat],
+            g_iStrategyRoleCount[strat]);
         g_iMaxStrategies++;
     }
     while (kv.GotoNextKey());
@@ -4092,7 +4096,8 @@ void ParseStrategyRoleUtility(KeyValues kv, int strat, int role)
 
         if (!ParseUtilityRequirement(szValue, defIndex, amount))
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Invalid utility entry %s for role %s: %s",
+                szKey, g_szStrategyRoleName[strat][role], szValue);
             continue;
         }
 
@@ -4217,13 +4222,13 @@ void TrySelectStrategy()
 
         if (!CanAssignRequiredStrategyUtility(strat))
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Skipping %s: required utility is not available.", g_szStrategyName[strat]);
             continue;
         }
 
         if (!CanTryStrategyWithAvailablePlayers(strat))
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Skipping %s: not enough available T players.", g_szStrategyName[strat]);
             continue;
         }
 
@@ -4244,7 +4249,7 @@ void TrySelectStrategy()
             g_bStrategySelectionPending = false;
             g_iActiveStrategy = strat;
             g_fStrategyAssignTime = GetGameTime();
-            NoDebugPrint();
+            PrintToServer("[STRATS] Assigned strategy %s.", g_szStrategyName[strat]);
             return;
         }
     }
@@ -4275,7 +4280,7 @@ bool TryAssignStrategy(int strat)
         if (role == skippedRole)
         {
             g_bStrategyRoleSkipped[role] = true;
-            NoDebugPrint();
+            PrintToServer("[STRATS] Skipping utility-free role %s for human T player.", g_szStrategyRoleName[strat][role]);
             continue;
         }
 
@@ -4309,7 +4314,7 @@ bool TryAssignStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
     int selected = FindBotForStrategyRole(strat, role, used);
     if (selected == 0)
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Could not assign role %s for %s.", g_szStrategyRoleName[strat][role], g_szStrategyName[strat]);
         return false;
     }
 
@@ -4330,7 +4335,13 @@ bool TryAssignStrategyRole(int strat, int role, bool used[MAXPLAYERS + 1])
         BotMimic_StopPlayerMimic(selected);
     }
 
-    NoDebugPrint();
+    PrintToServer("[STRATS] Assigned %N to %s role %s at %.1f %.1f %.1f.",
+        selected,
+        g_szStrategyName[strat],
+        g_szStrategyRoleName[strat][role],
+        g_fStrategyRolePos[strat][role][0],
+        g_fStrategyRolePos[strat][role][1],
+        g_fStrategyRolePos[strat][role][2]);
 
     return true;
 }
@@ -4416,7 +4427,8 @@ bool DoesClientMeetStrategyUtilityRequirements(int client, int strat, int role)
 
         if (heldCount < amount)
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] %N missing utility for role %s: defindex %d need %d have %d",
+                client, g_szStrategyRoleName[strat][role], defIndex, amount, heldCount);
             return false;
         }
     }
@@ -4437,7 +4449,7 @@ bool HandleStrategyBot(int client, bool bIsEnemyVisible)
 
     if (!IsPlayerAlive(client) || GetClientTeam(client) != g_iStrategyTeam[strat])
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Aborting %s: assigned bot died or changed team.", g_szStrategyName[strat]);
         ClearActiveStrategy(false);
         return false;
     }
@@ -4452,7 +4464,7 @@ bool HandleStrategyBot(int client, bool bIsEnemyVisible)
             g_iClientStrategyRole[client] = -1;
             g_iStrategyRoleClient[role] = 0;
             g_bDidInitialSwitch[client] = true;
-            NoDebugPrint();
+            PrintToServer("[STRATS] %N stopped strategy mimic after spotting an enemy.", client);
             CheckActiveStrategyFinished();
             return false;
         }
@@ -4464,14 +4476,17 @@ bool HandleStrategyBot(int client, bool bIsEnemyVisible)
     if ((GetGameTime() - g_fStrategyAssignTime) > g_fStrategyTimeout[strat])
     {
         PrintStrategySetupBlocker(strat);
-        NoDebugPrint();
+        PrintToServer("[STRATS] Aborting %s: setup timed out.", g_szStrategyName[strat]);
         ClearActiveStrategy(false);
         return false;
     }
 
     if (!DoesClientMeetStrategyUtilityRequirements(client, strat, role))
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Aborting %s: %N no longer has required utility for %s.",
+            g_szStrategyName[strat],
+            client,
+            g_szStrategyRoleName[strat][role]);
         ClearActiveStrategy(false);
         return false;
     }
@@ -4523,7 +4538,7 @@ void TryStartActiveStrategy()
 
     if (!DoesAssignedStrategyStillHaveUtility(strat))
     {
-        NoDebugPrint();
+        PrintToServer("[STRATS] Aborting %s: assigned bots no longer have required utility.", g_szStrategyName[strat]);
         ClearActiveStrategy(false);
         return;
     }
@@ -4539,14 +4554,14 @@ void TryStartActiveStrategy()
 
         if (error != BM_NoError)
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Failed to play %s for %N: error %d", g_szStrategyRoleReplay[strat][role], client, error);
             ClearActiveStrategy(false);
             return;
         }
     }
 
     g_bStrategyStarted = true;
-    NoDebugPrint();
+    PrintToServer("[STRATS] Started strategy %s with %d roles.", g_szStrategyName[strat], CountAssignedStrategyRoles(strat));
 }
 
 void PrintStrategySetupBlocker(int strat)
@@ -4559,7 +4574,9 @@ void PrintStrategySetupBlocker(int strat)
         int client = g_iStrategyRoleClient[role];
         if (!IsValidClient(client) || !IsFakeClient(client) || !IsPlayerAlive(client))
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Setup blocker for %s: role %s has no valid alive bot.",
+                g_szStrategyName[strat],
+                g_szStrategyRoleName[strat][role]);
             return;
         }
 
@@ -4572,12 +4589,24 @@ void PrintStrategySetupBlocker(int strat)
 
         if (fDistance > 45.0 || fSpeed > 20.0 || !bOnGround)
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] Setup blocker for %s: %N role %s origin %.1f %.1f %.1f target %.1f %.1f %.1f dist %.1f speed %.1f ground %d.",
+                g_szStrategyName[strat],
+                client,
+                g_szStrategyRoleName[strat][role],
+                g_fBotOrigin[client][0],
+                g_fBotOrigin[client][1],
+                g_fBotOrigin[client][2],
+                g_fStrategyRolePos[strat][role][0],
+                g_fStrategyRolePos[strat][role][1],
+                g_fStrategyRolePos[strat][role][2],
+                fDistance,
+                fSpeed,
+                bOnGround);
             return;
         }
     }
 
-    NoDebugPrint();
+    PrintToServer("[STRATS] Setup blocker for %s: no blocked role found.", g_szStrategyName[strat]);
 }
 
 void CheckActiveStrategyFinished()
@@ -4597,7 +4626,7 @@ void CheckActiveStrategyFinished()
             return;
     }
 
-    NoDebugPrint();
+    PrintToServer("[STRATS] Finished strategy %s.", g_szStrategyName[strat]);
     ClearActiveStrategy(false);
 }
 
@@ -4897,7 +4926,7 @@ void TryShowIGLTStrategyMenu()
     if (!IsItMyChance(chance))
     {
         g_bStrategySelectionPending = false;
-        NoDebugPrint();
+        PrintToServer("[STRATS] T IGL strategy selector did not appear.");
         return;
     }
 
@@ -4928,7 +4957,7 @@ void TryShowIGLTStrategyMenu()
     {
         delete menu;
         g_bStrategySelectionPending = false;
-        NoDebugPrint();
+        PrintToServer("[STRATS] T IGL strategy selector had no runnable strategies.");
         return;
     }
 
@@ -4955,7 +4984,7 @@ public Action Timer_CloseIGLTStrategyMenu(Handle timer, any data)
         return Plugin_Stop;
 
     CloseIGLTStrategyMenu(true);
-    NoDebugPrint();
+    PrintToServer("[STRATS] T IGL did not select a strategy.");
     return Plugin_Stop;
 }
 
@@ -4971,7 +5000,7 @@ public int MenuHandler_IGLTStrategy(Menu menu, MenuAction action, int param1, in
 
         if (strat < 0 || strat >= g_iMaxStrategies || !CanShowStrategyInIGLMenu(strat))
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] T IGL selected strategy is no longer runnable.");
             return 0;
         }
 
@@ -4982,11 +5011,11 @@ public int MenuHandler_IGLTStrategy(Menu menu, MenuAction action, int param1, in
             g_bStrategySelectionPending = false;
             g_iActiveStrategy = strat;
             g_fStrategyAssignTime = GetGameTime();
-            NoDebugPrint();
+            PrintToServer("[STRATS] T IGL selected strategy %s.", g_szStrategyName[strat]);
         }
         else
         {
-            NoDebugPrint();
+            PrintToServer("[STRATS] T IGL failed to assign strategy %s.", g_szStrategyName[strat]);
         }
     }
     else if (action == MenuAction_Cancel)
@@ -5058,9 +5087,9 @@ void ReleaseCTDefaultsToPosition(float fCalloutPos[3], const char[] reason, int 
     {
         g_fLastCTDefaultBombCallout = now;
         if (sourceClient > 0 && IsValidClient(sourceClient))
-            NoDebugPrint();
+            PrintToServer("[DEFAULTS] %N triggered CT default release (%s): %d released, %d moving.", sourceClient, reason, released, moving);
         else
-            NoDebugPrint();
+            PrintToServer("[DEFAULTS] CT default release (%s): %d released, %d moving.", reason, released, moving);
     }
 }
 
@@ -5191,7 +5220,7 @@ bool HandleCTDefaultBot(int client, bool bIsEnemyVisible, int &iButtons, float f
         BotEquipBestWeapon(client, true);
         g_bCTDefaultAtSpot[client] = true;
         g_bDidInitialSwitch[client] = true;
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] %N is holding %s.", client, g_szDefaultName[defaultSpot]);
     }
 
     StopCTDefaultMovement(iButtons, fVel);
@@ -5556,7 +5585,7 @@ public Action Timer_CloseIGLCTDefaultMenu(Handle timer, any data)
     {
         CloseIGLCTDefaultMenu(true);
         g_bCTDefaultsAssigned = true;
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] IGL did not select a CT default.");
     }
 
     return Plugin_Stop;
@@ -5576,7 +5605,7 @@ public int MenuHandler_IGLCTDefault(Menu menu, MenuAction action, int param1, in
         g_bIGLCTDefaultMenuPending = false;
         g_iIGLCTDefaultClientUserId = GetClientUserId(param1);
 
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] IGL selected split: %d A, %d Mid, %d B.", g_iIGLCTDefaultA, g_iIGLCTDefaultMid, g_iIGLCTDefaultB);
 
         if (g_bFreezetimeEnd)
             TryApplyIGLCTDefaultSelection();
@@ -5631,7 +5660,7 @@ void AssignSelectedCTDefaults(int aCount, int midCount, int bCount)
     int eligibleCount = CountEligibleCTDefaultBots();
     if (g_iMaxDefaults <= 0 || !TrimCTDefaultSplitToEligible(aCount, midCount, bCount, eligibleCount))
     {
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] IGL CT default split is no longer valid.");
         return;
     }
 
@@ -5641,7 +5670,7 @@ void AssignSelectedCTDefaults(int aCount, int midCount, int bCount)
         used[i] = false;
     }
 
-    NoDebugPrint();
+    PrintToServer("[DEFAULTS] Applying IGL split: %d A, %d Mid, %d B.", aCount, midCount, bCount);
     AssignDefaultSiteSpots(DEFAULT_SITE_A, aCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_MID, midCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_B, bCount, used);
@@ -5719,7 +5748,7 @@ void AssignDefaultSiteSpots(DefaultSite site, int count, bool used[MAXPLAYERS + 
         g_iCTDefaultSpot[client] = defaultSpot;
         g_bCTDefaultAtSpot[client] = false;
 
-        NoDebugPrint();
+        PrintToServer("[DEFAULTS] Assigned %N to %s.", client, g_szDefaultName[defaultSpot]);
     }
 }
 
@@ -5830,7 +5859,7 @@ bool PickDefaultSplit(int eligibleCount, int &aCount, int &midCount, int &bCount
             aCount = g_iCTDefaultPlanA[plan];
             midCount = g_iCTDefaultPlanMid[plan];
             bCount = g_iCTDefaultPlanB[plan];
-            NoDebugPrint();
+            PrintToServer("[DEFAULTS] Picked split: %d A, %d Mid, %d B.", aCount, midCount, bCount);
             return true;
         }
     }
@@ -5919,7 +5948,7 @@ void ParseTPostPlantPositions(const char[] szMap)
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] Configuration file %s not found.", szPath);
         return;
     }
 
@@ -5928,21 +5957,21 @@ void ParseTPostPlantPositions(const char[] szMap)
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] Unable to parse KeyValues file %s.", szPath);
         return;
     }
 
     if (!kv.JumpToKey(szMap))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] No T post-plant positions found for %s.", szMap);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] T post-plant positions not configured correctly for %s.", szMap);
         return;
     }
 
@@ -5969,7 +5998,7 @@ void ParseTPostPlantPositions(const char[] szMap)
 
     delete kv;
     g_iMaxPostPlantPositions = i;
-    NoDebugPrint();
+    PrintToServer("[POSTPLANT] Loaded %d T post-plant positions for %s.", g_iMaxPostPlantPositions, szMap);
 }
 
 int GetPlantedBombSite(Event event)
@@ -5980,17 +6009,17 @@ int GetPlantedBombSite(Event event)
         int bombSite = GetEntProp(plantedC4, Prop_Send, "m_nBombSite");
         if (bombSite == 0)
         {
-            NoDebugPrint();
+            PrintToServer("[POSTPLANT] Resolved planted C4 as site A.");
             return DEFAULT_SITE_A;
         }
 
         if (bombSite == 1)
         {
-            NoDebugPrint();
+            PrintToServer("[POSTPLANT] Resolved planted C4 as site B.");
             return DEFAULT_SITE_B;
         }
 
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] Unknown planted C4 m_nBombSite value %d.", bombSite);
     }
 
     int site = event.GetInt("site");
@@ -6001,7 +6030,7 @@ int GetPlantedBombSite(Event event)
     if (site == 1)
         return DEFAULT_SITE_B;
 
-    NoDebugPrint();
+    PrintToServer("[POSTPLANT] Unable to resolve planted site from C4; bomb_planted event site value was %d.", site);
     return DEFAULT_SITE_UNKNOWN;
 }
 
@@ -6038,7 +6067,7 @@ void AssignTPostPlantPositions()
         g_iTPostPlantSpot[i] = spot;
         g_bTPostPlantAtSpot[i] = false;
         BotMoveTo(i, g_fPostPlantPos[spot], FASTEST_ROUTE);
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] Assigned %N to %s.", i, g_szPostPlantName[spot]);
     }
 }
 
@@ -6121,7 +6150,7 @@ bool HandleTPostPlantBot(int client, bool bIsEnemyVisible, int &iButtons, float 
     if (HasFreshTPostPlantEnemySighting(client, bIsEnemyVisible))
     {
         ClearClientTPostPlant(client, true);
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] %N left post-plant position after enemy sighting.", client);
         return false;
     }
 
@@ -6186,7 +6215,7 @@ void HoldTPostPlantSpot(int client, int spot, float fLookPos[3], int &iButtons, 
         g_bTPostPlantAtSpot[client] = true;
         g_bTPostPlantAWPScoped[client] = false;
         g_bDidInitialSwitch[client] = true;
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] %N is holding %s.", client, g_szPostPlantName[spot]);
     }
 
     StopTPostPlantMovement(iButtons, fVel);
@@ -6235,7 +6264,7 @@ void ReleaseTPostPlantPositions(const char[] reason)
     }
 
     if (bReleased)
-        NoDebugPrint();
+        PrintToServer("[POSTPLANT] Released T post-plant positions: %s.", reason);
 }
 
 void ClearClientTPostPlant(int client, bool bCancelMove)
@@ -6263,7 +6292,7 @@ void LoadAWPers()
 
     if (!FileExists(szPath))
     {
-        NoDebugPrint();
+        PrintToServer("AWPer configuration file not found: %s", szPath);
         return;
     }
 
@@ -6272,14 +6301,14 @@ void LoadAWPers()
     if (!kv.ImportFromFile(szPath))
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("Error parsing AWPers file: %s", szPath);
         return;
     }
 
     if (!kv.GotoFirstSubKey())
     {
         delete kv;
-        NoDebugPrint();
+        PrintToServer("No AWPer entries found.");
         return;
     }
 
@@ -6304,14 +6333,14 @@ void LoadAWPers()
                 if (strcmp(name, botName) == 0)
                 {
                     g_bIsAWPer[i] = true;
-                    NoDebugPrint();
+                    PrintToServer("Loaded AWPer: %s (Client %d)", name, i);
                     count++;
                 }
             }
         }
     } while (kv.GotoNextKey());
 
-    NoDebugPrint();
+    PrintToServer("Loaded %d AWPers from file.", count);
     delete kv;
 }
 
@@ -6322,7 +6351,7 @@ void LoadBotTemplates()
 
     if (!FileExists(sPath))
     {
-        NoDebugPrint();
+        PrintToServer("[LIGA] bot_templates.json not found at %s", sPath);
         return;
     }
 
@@ -6331,7 +6360,7 @@ void LoadBotTemplates()
     File hFile = OpenFile(sPath, "r");
     if (hFile == null)
     {
-        NoDebugPrint();
+        PrintToServer("[LIGA] Could not open bot_templates.json!");
         return;
     }
 
@@ -6362,7 +6391,7 @@ void LoadBotTemplates()
     }
 
     delete hFile;
-    NoDebugPrint();
+    PrintToServer("[LIGA] Loaded bot_templates.json (%d entries)", g_hBotTemplates.Size);
 }
 
 bool IsProBot(const char[] szName, char[] szCrosshairCode, int iSize)
@@ -6372,7 +6401,7 @@ bool IsProBot(const char[] szName, char[] szCrosshairCode, int iSize)
 	
 	if (!FileExists(szPath))
 	{
-		NoDebugPrint();
+		PrintToServer("Configuration file %s is not found.", szPath);
 		return false;
 	}
 	
@@ -7160,7 +7189,7 @@ bool TryMovePrimarylessBotToDroppedPrimary(int client, float fClientEyes[3], boo
     {
         char className[64];
         GetEntityClassname(weapon, className, sizeof(className));
-        NoDebugPrint();
+        PrintToServer("[PICKUP DEBUG] Primaryless bot %N reserved dropped %s (ent %d)", client, className, weapon);
         g_iLastLoggedDroppedPrimary[client] = weapon;
     }
 
@@ -7379,7 +7408,7 @@ public Action ResetAngleBlock(Handle timer, int client)
     if (IsClientInGame(client))
     {
         g_bAngleBlock[client] = false;
-        NoDebugPrint();
+        PrintToServer("[ANLGLES] Angle reset due to death or timer.", client);
     }
     return Plugin_Stop;
 }
@@ -7643,11 +7672,11 @@ void ForceBuyGrenadesDelayed(int client)
 
     if (moneyBefore == money)
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] %N skipped utility buy (already has utility or insufficient money).", client);
     }
     else
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] %N bought missing utility only (spent: %d, left: %d).", client, moneyBefore - money, money);
     }
 }
 
@@ -7944,7 +7973,7 @@ bool TryUpgradeWeapon(int client)
 
     if (g_bIsAWPer[client] && IsAWPerWaitingForSavedAWP(client))
     {
-        NoDebugPrint();
+        PrintToServer("[AWP_SAVER] AWPer %N skipped upgrade while waiting for saved AWP", client);
         return false;
     }
 
@@ -7956,7 +7985,7 @@ bool TryUpgradeWeapon(int client)
 	    CS_DropWeapon(client, iPrimary, true, false);
 	    AddMoney(client, -cost, true, true, szNewWeapon);
 	    CSGO_ReplaceWeapon(client, CS_SLOT_PRIMARY, szNewWeapon);
-	    NoDebugPrint();
+	    PrintToServer("[BUY] Bot %N upgraded weapon to AWP", client);
 	    return true;
 	}
     
@@ -7988,7 +8017,7 @@ bool TryUpgradeWeapon(int client)
             CS_DropWeapon(client, iPrimary, true, false);
             AddMoney(client, -cost, true, true, szNewWeapon);
             CSGO_ReplaceWeapon(client, CS_SLOT_PRIMARY, szNewWeapon);
-            NoDebugPrint();
+            PrintToServer("[BUY] BOT %N Upgraded current weapon to %s", client, szNewWeapon);
             return true;
         }
     }
@@ -8199,14 +8228,14 @@ public void OnBotTakeDamagePost(int victim, int attacker, int inflictor, float d
 	{
 		ClearClientCTDefault(victim, true);
 		SnapBotToNearestEnemy(victim);
-		NoDebugPrint();
+		PrintToServer("[DEFAULTS] Bot %d took damage (%.1f) - leaving CT default", victim, damage);
 	}
 
 	if (g_iTPostPlantSpot[victim] != -1)
 	{
 		ClearClientTPostPlant(victim, true);
 		SnapBotToNearestEnemy(victim);
-		NoDebugPrint();
+		PrintToServer("[POSTPLANT] Bot %d took damage (%.1f) - leaving post-plant position", victim, damage);
 	}
 
 	if (!BotMimic_IsPlayerMimicing(victim))
@@ -8221,7 +8250,7 @@ public void OnBotTakeDamagePost(int victim, int attacker, int inflictor, float d
 	BotMimic_StopPlayerMimic(victim);
 	g_bIsFakeDefusing[victim] = false;
 	SnapBotToNearestEnemy(victim);
-	NoDebugPrint();
+	PrintToServer("[MIMIC] Bot %d took damage (%.1f) - stopping mimic and snapping to nearest enemy", victim, damage);
 }
 
 stock void ApplyFlashRecoverLook(int client)
@@ -8361,7 +8390,7 @@ stock bool IsLineBlockedByCloseSmoke(float fFrom[3], float fTo[3])
 
         if (LineGoesThroughSmoke(fFrom, fTo))
         {
-            NoDebugPrint();
+            PrintToServer("[ANGLES] Line of sight blocked by close smoke at distance: %.2f units", distance);
             return true;
         }
     }
@@ -8750,7 +8779,7 @@ void CheckAWPDonation(int team)
                 CreateTimer(11.0, Timer_ClearBuyDelay, awper, TIMER_FLAG_NO_MAPCHANGE);
                 CreateTimer(11.0, Timer_ClearHumanAWPWait, awper, TIMER_FLAG_NO_MAPCHANGE);
 
-                NoDebugPrint();
+                PrintToServer("[AWP_SAVER] Human %N saved AWP for bot AWPer %N, delaying AWPer buy for user drop", i, awper);
                 return;
             }
         }
@@ -8769,7 +8798,7 @@ void CheckAWPDonation(int team)
             int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
             if (IsValidEntity(primary) && GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") == 9)
             {
-                NoDebugPrint();
+                PrintToServer("[AWP_SAVER] Rifler %N has saved AWP for AWPer %N, setting up donation", i, awper);
                 
                 g_bIsAWPDonor[i] = true;
                 g_bBuyDelayed[i] = true;
@@ -8822,26 +8851,28 @@ void CheckAWPDonation(int team)
 
     if (awperHasAWP)
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] AWPer %N already has an AWP, skipping donation.", awper);
         return;
     }
 
     int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
     if (awperMoney >= 5750)
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] AWPer %N can afford own AWP (%d$), skipping donation.", awper, awperMoney);
         return;
     }
 
     if (awperHasRifle && !donorHasAWP)
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] AWPer %N already has rifle (%s) and donor %N has no AWP, skipping donation.",
+            awper, awperClass, donor);
         return;
     }
 
     if (donorHasAWP && awperHasRifle)
     {
-        NoDebugPrint();
+        PrintToServer("[AWP DEBUG] Donor %N already has AWP and AWPer %N has rifle (%s) → swapping weapons.",
+            donor, awper, awperClass);
 
         g_bIsAWPDonor[donor] = true;
         g_bBuyDelayed[donor] = true;
@@ -8852,7 +8883,8 @@ void CheckAWPDonation(int team)
     }
 
     int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
-    NoDebugPrint();
+    PrintToServer("[AWP DEBUG] Evaluating donor %N (money=%d) & AWPer %N (money=%d)",
+        donor, donorMoney, awper, awperMoney);
 
     bool donorCanDonate = false;
 
@@ -8869,13 +8901,13 @@ void CheckAWPDonation(int team)
 	        {
 	            g_bBuyDelayed[awper] = true;
 	            CreateTimer(3.5, Timer_ClearBuyDelay, awper, TIMER_FLAG_NO_MAPCHANGE);
-	            NoDebugPrint();
+	            PrintToServer("[AWP DEBUG] AWPer %N buy delayed because donor %N can donate", awper, donor);
 	        }
 
 	        g_bBuyDelayed[donor] = true;
 	        CreateTimer(2.0, Timer_DelayedDonorBuy, donor, TIMER_FLAG_NO_MAPCHANGE);
 	        CreateTimer(3.5, Timer_ClearBuyDelay, donor, TIMER_FLAG_NO_MAPCHANGE);
-	        NoDebugPrint();
+	        PrintToServer("[AWP DEBUG] CT donor %N scheduled for delayed buy", donor);
 	    }
 	}
 	else
@@ -8891,13 +8923,13 @@ void CheckAWPDonation(int team)
 	        {
 	            g_bBuyDelayed[awper] = true;
 	            CreateTimer(3.5, Timer_ClearBuyDelay, awper, TIMER_FLAG_NO_MAPCHANGE);
-	            NoDebugPrint();
+	            PrintToServer("[AWP DEBUG] AWPer %N buy delayed because donor %N can donate", awper, donor);
 	        }
 
 	        g_bBuyDelayed[donor] = true;
 	        CreateTimer(2.0, Timer_DelayedDonorBuy, donor, TIMER_FLAG_NO_MAPCHANGE);
 	        CreateTimer(3.5, Timer_ClearBuyDelay, donor, TIMER_FLAG_NO_MAPCHANGE);
-	        NoDebugPrint();
+	        PrintToServer("[AWP DEBUG] T donor %N scheduled for delayed buy", donor);
 	    }
 	}
 
@@ -8920,13 +8952,13 @@ void ResetLossBonusOnOvertimeHalftime()
         {
             g_iRoundsLostCT = 1;
             g_iRoundsLostT = 1;
-            NoDebugPrint();
+            PrintToServer("[LOSSBONUS] Start of overtime (round %d). Resetting CT and T rounds lost to 1.", g_iCurrentRound + 1);
         }
         else if (iRoundsInCurrentOvertime == iRoundsPerOvertimeHalf)
         {
             g_iRoundsLostCT = 1;
             g_iRoundsLostT = 1;
-            NoDebugPrint();
+            PrintToServer("[LOSSBONUS] Overtime halftime switch after round %d. Resetting CT and T rounds lost to 1.", g_iCurrentRound + 1);
         }
     }
 }
@@ -9137,7 +9169,7 @@ stock bool ShouldFakePlantOnce(int client, float fChance)
 	g_bFakePlantRolled[client] = true;
 
 	float roll = Math_GetRandomFloat(0.0, 100.0);
-	NoDebugPrint();
+	PrintToServer("[FAKEPLANT] Client %d rolled %.2f for %.2f%% chance", client, roll, fChance);
 
 	return roll <= fChance;
 }
@@ -9230,7 +9262,7 @@ stock void SpreadCompromisedStateFrom(int compromisedBot)
         if (GetVectorDistance(compromisedPos, teammatePos) <= 100.0)
         {
             g_bBotCompromised[i] = true;
-            NoDebugPrint();
+            PrintToServer("[RETAKE] Bot %d compromised due to proximity to bot %d", i, compromisedBot);
         }
     }
 }
