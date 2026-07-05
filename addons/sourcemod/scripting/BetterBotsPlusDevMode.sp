@@ -352,6 +352,34 @@ public Plugin myinfo =
 	url = "http://steamcommunity.com/id/rxpev"
 };
 
+void PrintTeamGoldenChat(int team, const char[] message)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsValidClient(i) || IsFakeClient(i) || GetClientTeam(i) != team)
+            continue;
+
+        PrintToChat(i, "\x01 \x09%s", message);
+    }
+}
+
+void PrintDefaultPlanChat(int aCount, int midCount, int bCount)
+{
+    char message[128];
+    Format(message, sizeof(message), "[LIGA] Default: %d A, %d Mid, %d B", aCount, midCount, bCount);
+    PrintTeamGoldenChat(CS_TEAM_CT, message);
+}
+
+void PrintStrategyPlanChat(int strat)
+{
+    if (strat < 0 || strat >= g_iMaxStrategies)
+        return;
+
+    char message[128];
+    Format(message, sizeof(message), "[LIGA] Strategy: %s", g_szStrategyName[strat]);
+    PrintTeamGoldenChat(CS_TEAM_T, message);
+}
+
 public void OnPluginStart()
 {	
 	g_bIsCompetitive = FindConVar("game_mode").IntValue == 1 && FindConVar("game_type").IntValue == 0 ? true : false;
@@ -4250,6 +4278,7 @@ void TrySelectStrategy()
             g_iActiveStrategy = strat;
             g_fStrategyAssignTime = GetGameTime();
             PrintToServer("[STRATS] Assigned strategy %s.", g_szStrategyName[strat]);
+            PrintStrategyPlanChat(strat);
             return;
         }
     }
@@ -5012,6 +5041,7 @@ public int MenuHandler_IGLTStrategy(Menu menu, MenuAction action, int param1, in
             g_iActiveStrategy = strat;
             g_fStrategyAssignTime = GetGameTime();
             PrintToServer("[STRATS] T IGL selected strategy %s.", g_szStrategyName[strat]);
+            PrintStrategyPlanChat(strat);
         }
         else
         {
@@ -5674,6 +5704,7 @@ void AssignSelectedCTDefaults(int aCount, int midCount, int bCount)
     AssignDefaultSiteSpots(DEFAULT_SITE_A, aCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_MID, midCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_B, bCount, used);
+    PrintDefaultPlanChat(aCount, midCount, bCount);
 }
 
 public Action Timer_AssignCTDefaults(Handle timer, any data)
@@ -5729,6 +5760,7 @@ void AssignCTDefaults()
     AssignDefaultSiteSpots(DEFAULT_SITE_A, aCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_MID, midCount, used);
     AssignDefaultSiteSpots(DEFAULT_SITE_B, bCount, used);
+    PrintDefaultPlanChat(aCount, midCount, bCount);
 }
 
 void AssignDefaultSiteSpots(DefaultSite site, int count, bool used[MAXPLAYERS + 1])
