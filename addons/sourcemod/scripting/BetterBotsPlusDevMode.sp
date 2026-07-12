@@ -909,9 +909,6 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 	ParseMapAngles(g_szMap);
     ParseMapPeeks(g_szMap);
 
-    CheckAWPDonation(CS_TEAM_T);
-    CheckAWPDonation(CS_TEAM_CT);
-
 	int iTeam = g_bIsBombScenario ? CS_TEAM_CT : CS_TEAM_T;
 	int iOppositeTeam = g_bIsBombScenario ? CS_TEAM_T : CS_TEAM_CT;
     
@@ -1011,6 +1008,9 @@ public void OnRoundStart(Event eEvent, char[] szName, bool bDontBroadcast)
 		}
 	}
 	
+	CheckAWPDonation(CS_TEAM_T);
+	CheckAWPDonation(CS_TEAM_CT);
+
 	g_bHalftimeSwitch = false;
 	if(g_bIsCompetitive)
 		CreateTimer(0.2, Timer_DropWeapons, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -6464,7 +6464,7 @@ bool IsHumanAWPer(int client)
     int team = GetClientTeam(client);
     if (team != CS_TEAM_T && team != CS_TEAM_CT) return false;
 
-    return (g_hCvarIsAWP != null && g_hCvarIsAWP.IntValue == 1);
+    return IsHumanAWPEnabled();
 }
 
 int FindTeamAWPer(int team)
@@ -6478,6 +6478,24 @@ int FindTeamAWPer(int team)
         if (IsClientInGame(i) && IsFakeClient(i) && GetClientTeam(i) == team && IsBotAWPer(i))
             return i;
     }
+    return -1;
+}
+
+int FindBotAWPHolderOnTeam(int team, int excludeClient = 0)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (i == excludeClient)
+            continue;
+
+        if (!IsValidClient(i) || !IsFakeClient(i) || !IsPlayerAlive(i) || GetClientTeam(i) != team)
+            continue;
+
+        int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
+        if (IsValidEntity(primary) && GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") == 9)
+            return i;
+    }
+
     return -1;
 }
 
@@ -6506,7 +6524,7 @@ int FindAWPerWithoutAWP(int rifler)
 
 int FindHumanAWPerOnTeam(int team)
 {
-    if (g_hCvarIsAWP == null || g_hCvarIsAWP.IntValue != 1)
+    if (!IsHumanAWPEnabled())
         return -1;
 
     for (int i = 1; i <= MaxClients; i++)
@@ -6515,6 +6533,14 @@ int FindHumanAWPerOnTeam(int team)
             return i; // In LIGA there is effectively "the user".
     }
     return -1;
+}
+
+bool IsHumanAWPEnabled()
+{
+    if (g_hCvarIsAWP == null)
+        g_hCvarIsAWP = FindConVar("isAWP");
+
+    return (g_hCvarIsAWP != null && g_hCvarIsAWP.IntValue == 1);
 }
 
 
@@ -8776,6 +8802,16 @@ void CheckAWPDonation(int team)
         return;
 
     bool awperIsHuman = (!IsFakeClient(awper));
+    bool awperPrimaryless = !IsValidEntity(GetPlayerWeaponSlot(awper, CS_SLOT_PRIMARY));
+
+    if (awperIsHuman && awperPrimaryless)
+    {
+        int awpHolder = FindBotAWPHolderOnTeam(team, awper);
+        if (awpHolder != -1)
+        {
+            donor = awpHolder;
+        }
+    }
 
     if (!awperIsHuman)
     {
@@ -8888,7 +8924,7 @@ void CheckAWPDonation(int team)
     }
 
     int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
-    if (awperMoney >= 5750)
+    if (!awperIsHuman && awperMoney >= 5750)
     {
         PrintToServer("[AWP DEBUG] AWPer %N can afford own AWP (%d$), skipping donation.", awper, awperMoney);
         return;

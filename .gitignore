@@ -2,3 +2,4 @@
 /.vs
 /spawns
 addons/sourcemod/plugins/liga.smx
+addons/sourcemod/plugins/liga_dev.smx
