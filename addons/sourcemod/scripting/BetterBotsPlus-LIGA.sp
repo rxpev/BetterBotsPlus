@@ -12,6 +12,8 @@
 #include <PTaH>
 #include <ripext>
 
+native bool Chaos_ShouldBotsIgnoreDroppedPrimaries(int client);
+
 StringMap g_hBotTemplates; // stores <name, template>
 
 #define MAX_NADES 512
@@ -107,6 +109,12 @@ Handle g_hBotThrowGrenade;
 Handle g_hAddMoney;
 Address g_pTheBots;
 CNavArea g_pCurrArea[MAXPLAYERS+1];
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    MarkNativeAsOptional("Chaos_ShouldBotsIgnoreDroppedPrimaries");
+    return APLRes_Success;
+}
 
 //BOT Nades Variables
 float g_fNadePos[128][3], g_fNadeLook[128][3];
@@ -725,7 +733,7 @@ public Action Timer_CheckPlayer(Handle hTimer, any data)
 				}
 	        }
 	    }
-	    if (bHasPrimary)
+	    if (bHasPrimary && !ShouldIgnoreDroppedPrimariesForChaos(i))
 	    {
 			TryUpgradeWeapon(i);
 		}
@@ -1176,17 +1184,18 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
 
         float fClientEyes[3];
         GetClientEyePosition(i, fClientEyes);
+        bool bIgnoreDroppedPrimaries = ShouldIgnoreDroppedPrimariesForChaos(i);
 
-        if (!PlayerHasPrimary(i) && TryMovePrimarylessBotToDroppedPrimary(i, fClientEyes, true))
+        if (!bIgnoreDroppedPrimaries && !PlayerHasPrimary(i) && TryMovePrimarylessBotToDroppedPrimary(i, fClientEyes, true))
         {
             continue;
         }
-        else if (PlayerHasPrimary(i))
+        else if (bIgnoreDroppedPrimaries || PlayerHasPrimary(i))
         {
             ClearDroppedPrimaryReservation(i);
         }
 
-        if (g_bIsAWPer[i])
+        if (!bIgnoreDroppedPrimaries && g_bIsAWPer[i])
         {
             int iAWP = FindNearestDroppedSpecificGun(i, "weapon_awp");
             if (IsValidEntity(iAWP))
@@ -1206,7 +1215,7 @@ public void OnFreezetimeEnd(Event eEvent, char[] szName, bool bDontBroadcast)
                 }
             }
         }
-        else if (g_bShouldPickupDroppedGun[i])
+        else if (!bIgnoreDroppedPrimaries && g_bShouldPickupDroppedGun[i])
         {
             int iGun = FindNearestDroppedSpecificGun(i, "weapon_ak47");
             if (!IsValidEntity(iGun))
@@ -2010,7 +2019,7 @@ public Action CS_OnBuyCommand(int client, const char[] szWeapon)
 
     if (g_bIsAWPer[client] && IsAWPerWaitingForSavedAWP(client) && IsInArray(szWeapon, szPrimaryWeapons, sizeof szPrimaryWeapons))
         return Plugin_Handled;
-    
+
     if (PlayerHasPrimary(client) && IsInArray(szWeapon, szPrimaryWeapons, sizeof szPrimaryWeapons))
         return Plugin_Handled;
 
@@ -3034,8 +3043,13 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			            iPrimaryDefIndex = GetEntProp(iPrimary, Prop_Send, "m_iItemDefinitionIndex");
 			        }
 
+			        bool bIgnoreDroppedPrimaries = ShouldIgnoreDroppedPrimariesForChaos(client);
 			        bool bMovingToReservedPrimary = false;
-			        if (!IsValidEntity(iPrimary))
+			        if (bIgnoreDroppedPrimaries)
+			        {
+			            ClearDroppedPrimaryReservation(client);
+			        }
+			        else if (!IsValidEntity(iPrimary))
 			        {
 			            bMovingToReservedPrimary = TryMovePrimarylessBotToDroppedPrimary(client, fClientEyes, pickupOverride);
 			        }
@@ -3044,7 +3058,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			            ClearDroppedPrimaryReservation(client);
 			        }
 
-			        if (!bMovingToReservedPrimary && g_bIsAWPer[client] && IsValidEntity(iAWP))
+			        if (!bIgnoreDroppedPrimaries && !bMovingToReservedPrimary && g_bIsAWPer[client] && IsValidEntity(iAWP))
 			        {
 			            float fAWPLocation[3];
 			            GetEntPropVector(iAWP, Prop_Send, "m_vecOrigin", fAWPLocation);
@@ -3068,7 +3082,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			                NoDebugPrint();
 			            }
 			        }
-			        else if (!bMovingToReservedPrimary && !IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
+			        else if (!bIgnoreDroppedPrimaries && !bMovingToReservedPrimary && !IsClientAWPer(client) && IsValidEntity(iAWP) && !g_bHasPickedUpAWP[client] && AreAllEnemiesDead(client))
 			        {
 			            int awper = FindAWPerWithoutAWP(client);
 			            
@@ -3093,7 +3107,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 			        }
 			        if (!bMovingToReservedPrimary && (!g_bBombPlanted || pickupOverride) && (!BotIsHiding(client) || pickupOverride) && (GetTask(client) != COLLECT_HOSTAGES || pickupOverride) && (GetTask(client) != RESCUE_HOSTAGES || pickupOverride) && (!IsValidEntity(iDroppedC4) || pickupOverride))
 			        {
-						if (IsValidEntity(iAK47))
+						if (!bIgnoreDroppedPrimaries && IsValidEntity(iAK47))
 						{
 							iPrimaryDefIndex = IsValidEntity(iPrimary) ? GetEntProp(iPrimary, Prop_Send, "m_iItemDefinitionIndex") : 0;
 							float fAK47Location[3];
@@ -3106,7 +3120,7 @@ public Action OnPlayerRunCmd(int client, int &iButtons, int &iImpulse, float fVe
 									BotMoveTo(client, fAK47Location, FASTEST_ROUTE);
 							}
 						}
-						else if (IsValidEntity(iM4A1))
+						else if (!bIgnoreDroppedPrimaries && IsValidEntity(iM4A1))
 						{
 							iPrimaryDefIndex = IsValidEntity(iPrimary) ? GetEntProp(iPrimary, Prop_Send, "m_iItemDefinitionIndex") : 0;
 							float fM4A1Location[3];
@@ -7092,6 +7106,12 @@ bool IsDroppedPrimaryReservedByDropSystem(int weapon, int client)
     return false;
 }
 
+bool ShouldIgnoreDroppedPrimariesForChaos(int client)
+{
+    return GetFeatureStatus(FeatureType_Native, "Chaos_ShouldBotsIgnoreDroppedPrimaries") == FeatureStatus_Available
+        && Chaos_ShouldBotsIgnoreDroppedPrimaries(client);
+}
+
 bool IsPrimaryWeaponClassname(const char[] className)
 {
     static const char primaryClassnames[][] =
@@ -7182,6 +7202,12 @@ int FindNearestUnreservedDroppedPrimary(int client, float fClientEyes[3], bool p
 bool TryMovePrimarylessBotToDroppedPrimary(int client, float fClientEyes[3], bool pickupOverride)
 {
     if (PlayerHasPrimary(client))
+    {
+        ClearDroppedPrimaryReservation(client);
+        return false;
+    }
+
+    if (ShouldIgnoreDroppedPrimariesForChaos(client))
     {
         ClearDroppedPrimaryReservation(client);
         return false;
