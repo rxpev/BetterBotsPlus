@@ -23,6 +23,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define MAX_SMOKE_DIST 500.0
 #define COST_VEST 650
 #define COST_VESTHELM 1000
+#define HUMAN_AWP_DONATION_MONEY_LIMIT 6500
 #define MAX_BOTS 64
 #define MAX_TEMPLATE_NAME 32
 #define FLASH_DODGE_MAX_DIST 1000.0
@@ -2040,11 +2041,23 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
     int team = GetClientTeam(donor);
     int awper = FindTeamAWPer(team);
-    bool awperIsHuman = !IsFakeClient(awper);
     if (awper == -1 || !IsClientInGame(awper))
     {
         if (awper > 0 && awper <= MaxClients)
         	g_bBuyDelayed[awper] = false;
+        return Plugin_Stop;
+    }
+
+    bool awperIsHuman = !IsFakeClient(awper);
+    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
+    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
+
+    if (awperIsHuman && (awperMoney >= HUMAN_AWP_DONATION_MONEY_LIMIT || awperMoney >= donorMoney))
+    {
+        g_bIsAWPDonor[donor] = false;
+        g_bBuyDelayed[awper] = false;
+        PrintToServer("[AWP DEBUG] Human AWPer %N can buy own AWP or has equal money (awper=%d, donor=%d), skipping donation.",
+            awper, awperMoney, donorMoney);
         return Plugin_Stop;
     }
     
@@ -2194,8 +2207,6 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
         }
     }
 
-    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
-    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
     bool awperHasPrimary = IsValidEntity(GetPlayerWeaponSlot(awper, CS_SLOT_PRIMARY));
 
     int awpPrice = CS_GetWeaponPrice(donor, CSWeapon_AWP);
@@ -8852,6 +8863,13 @@ void CheckAWPDonation(int team)
             }
         }
     }
+
+    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
+    if (awperIsHuman && awperMoney >= HUMAN_AWP_DONATION_MONEY_LIMIT)
+    {
+        PrintToServer("[AWP DEBUG] Human AWPer %N has %d$, skipping bot AWP donation.", awper, awperMoney);
+        return;
+    }
     
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -8866,6 +8884,14 @@ void CheckAWPDonation(int team)
             int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
             if (IsValidEntity(primary) && GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") == 9)
             {
+                int savedDonorMoney = GetEntProp(i, Prop_Send, "m_iAccount");
+                if (awperIsHuman && awperMoney >= savedDonorMoney)
+                {
+                    PrintToServer("[AWP DEBUG] Human AWPer %N has >= saved AWP donor %N money (%d >= %d), skipping donation.",
+                        awper, i, awperMoney, savedDonorMoney);
+                    return;
+                }
+
                 PrintToServer("[AWP_SAVER] Rifler %N has saved AWP for AWPer %N, setting up donation", i, awper);
                 
                 g_bIsAWPDonor[i] = true;
@@ -8884,6 +8910,14 @@ void CheckAWPDonation(int team)
 
     if (donor == awper || donor == -1)
         return;
+
+    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
+    if (awperIsHuman && awperMoney >= donorMoney)
+    {
+        PrintToServer("[AWP DEBUG] Human AWPer %N has >= donor %N money (%d >= %d), skipping donation.",
+            awper, donor, awperMoney, donorMoney);
+        return;
+    }
 
     bool isCT = (team == CS_TEAM_CT);
 
@@ -8923,7 +8957,6 @@ void CheckAWPDonation(int team)
         return;
     }
 
-    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
     if (!awperIsHuman && awperMoney >= 5750)
     {
         PrintToServer("[AWP DEBUG] AWPer %N can afford own AWP (%d$), skipping donation.", awper, awperMoney);
@@ -8950,7 +8983,6 @@ void CheckAWPDonation(int team)
         return;
     }
 
-    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
     PrintToServer("[AWP DEBUG] Evaluating donor %N (money=%d) & AWPer %N (money=%d)",
         donor, donorMoney, awper, awperMoney);
 

@@ -23,6 +23,7 @@ StringMap g_hBotTemplates; // stores <name, template>
 #define MAX_SMOKE_DIST 500.0
 #define COST_VEST 650
 #define COST_VESTHELM 1000
+#define HUMAN_AWP_DONATION_MONEY_LIMIT 6500
 #define MAX_BOTS 64
 #define MAX_TEMPLATE_NAME 32
 #define FLASH_DODGE_MAX_DIST 1000.0
@@ -2041,11 +2042,22 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
 
     int team = GetClientTeam(donor);
     int awper = FindTeamAWPer(team);
-    bool awperIsHuman = !IsFakeClient(awper);
     if (awper == -1 || !IsClientInGame(awper))
     {
         if (awper > 0 && awper <= MaxClients)
         	g_bBuyDelayed[awper] = false;
+        return Plugin_Stop;
+    }
+
+    bool awperIsHuman = !IsFakeClient(awper);
+    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
+    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
+
+    if (awperIsHuman && (awperMoney >= HUMAN_AWP_DONATION_MONEY_LIMIT || awperMoney >= donorMoney))
+    {
+        g_bIsAWPDonor[donor] = false;
+        g_bBuyDelayed[awper] = false;
+        NoDebugPrint();
         return Plugin_Stop;
     }
     
@@ -2195,8 +2207,6 @@ public Action Timer_DelayedDonorBuy(Handle timer, any clientArg)
         }
     }
 
-    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
-    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
     bool awperHasPrimary = IsValidEntity(GetPlayerWeaponSlot(awper, CS_SLOT_PRIMARY));
 
     int awpPrice = CS_GetWeaponPrice(donor, CSWeapon_AWP);
@@ -8823,6 +8833,13 @@ void CheckAWPDonation(int team)
             }
         }
     }
+
+    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
+    if (awperIsHuman && awperMoney >= HUMAN_AWP_DONATION_MONEY_LIMIT)
+    {
+        NoDebugPrint();
+        return;
+    }
     
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -8837,6 +8854,13 @@ void CheckAWPDonation(int team)
             int primary = GetPlayerWeaponSlot(i, CS_SLOT_PRIMARY);
             if (IsValidEntity(primary) && GetEntProp(primary, Prop_Send, "m_iItemDefinitionIndex") == 9)
             {
+                int savedDonorMoney = GetEntProp(i, Prop_Send, "m_iAccount");
+                if (awperIsHuman && awperMoney >= savedDonorMoney)
+                {
+                    NoDebugPrint();
+                    return;
+                }
+
                 NoDebugPrint();
                 
                 g_bIsAWPDonor[i] = true;
@@ -8855,6 +8879,13 @@ void CheckAWPDonation(int team)
 
     if (donor == awper || donor == -1)
         return;
+
+    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
+    if (awperIsHuman && awperMoney >= donorMoney)
+    {
+        NoDebugPrint();
+        return;
+    }
 
     bool isCT = (team == CS_TEAM_CT);
 
@@ -8894,7 +8925,6 @@ void CheckAWPDonation(int team)
         return;
     }
 
-    int awperMoney = GetEntProp(awper, Prop_Send, "m_iAccount");
     if (!awperIsHuman && awperMoney >= 5750)
     {
         NoDebugPrint();
@@ -8919,7 +8949,6 @@ void CheckAWPDonation(int team)
         return;
     }
 
-    int donorMoney = GetEntProp(donor, Prop_Send, "m_iAccount");
     NoDebugPrint();
 
     bool donorCanDonate = false;
