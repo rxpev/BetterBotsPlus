@@ -3,3 +3,4 @@
 /spawns
 addons/sourcemod/plugins/liga.smx
 addons/sourcemod/plugins/liga_dev.smx
+addons/sourcemod/scripting/liga_dev.sp
