@@ -92,6 +92,10 @@ ConVar g_hCvarIsAWP;
 ConVar g_hCvarIsFaceit;
 ConVar g_hCvarIsIGL;
 ConVar g_cvBotEcoLimit;
+ConVar g_cvMpMaxRounds;
+ConVar g_cvMpOvertimeMaxRounds;
+ConVar g_cvMpHalftime;
+ConVar g_cvMpMatchCanClinch;
 ConVar g_cvFakeDefuseCooldown;
 ConVar g_cvFakeDefuseCooldownMax;
 Handle g_hBotMoveTo;
@@ -419,6 +423,10 @@ public void OnPluginStart()
 	LoadDetours();
 	
 	g_cvBotEcoLimit = FindConVar("bot_eco_limit");
+	g_cvMpMaxRounds = FindConVar("mp_maxrounds");
+	g_cvMpOvertimeMaxRounds = FindConVar("mp_overtime_maxrounds");
+	g_cvMpHalftime = FindConVar("mp_halftime");
+	g_cvMpMatchCanClinch = FindConVar("mp_match_can_clinch");
 	g_hBotTemplates = new StringMap();
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -517,7 +525,7 @@ public Action Timer_CheckPlayer(Handle hTimer, any data)
 		if (!bInBuyZone)
 			continue;
 
-        if (g_iCurrentRound == 0 || g_iCurrentRound == 12)
+        if (IsPistolRound())
         {
             if (IsItMyChance(5.0))
             {
@@ -656,7 +664,7 @@ public Action Timer_CheckPlayer(Handle hTimer, any data)
             }
         }
 
-	        if (g_iCurrentRound != 0 && g_iCurrentRound != 12
+	        if (!IsPistolRound()
 	            && iAccount < 3000
 	            && !g_bBotHasForcedBuy[i]
 	            && !bHasPrimary)
@@ -1047,7 +1055,7 @@ public void OnRoundEnd(Event eEvent, char[] szName, bool bDontBroadcast)
     g_bRoundEnded = true;
     EnableBombSites();
     ClearDroppedPrimaryReservations();
-	if (g_iCurrentRound == 0 || g_iCurrentRound == 12)
+	if (IsPistolRound())
 	{
 	    g_iRoundsLostCT = 1;
 	    g_iRoundsLostT = 1;
@@ -3812,7 +3820,7 @@ void BuildActiveNadesForRound()
 
 bool IsPistolStrategyRound()
 {
-    return g_iCurrentRound == 0 || g_iCurrentRound == 12;
+    return IsPistolRound();
 }
 
 bool IsFaceitModeEnabled()
@@ -8775,6 +8783,73 @@ int GetLossBonus(int& g_iRoundsLost)
     }
 }
 
+stock int GetMaxRounds()
+{
+    if (g_cvMpMaxRounds == null)
+        return 24;
+
+    return g_cvMpMaxRounds.IntValue;
+}
+
+stock int GetOvertimeMaxRounds()
+{
+    if (g_cvMpOvertimeMaxRounds == null)
+        return 0;
+
+    return g_cvMpOvertimeMaxRounds.IntValue;
+}
+
+stock int GetRegulationHalfRounds()
+{
+    int iMaxRounds = GetMaxRounds();
+    if (iMaxRounds <= 0)
+        return 12;
+
+    return iMaxRounds / 2;
+}
+
+stock bool IsHalftimeEnabled()
+{
+    return g_cvMpHalftime != null && g_cvMpHalftime.BoolValue;
+}
+
+stock bool CanMatchClinch()
+{
+    return g_cvMpMatchCanClinch != null && g_cvMpMatchCanClinch.BoolValue;
+}
+
+stock bool IsPistolRound()
+{
+    int iHalfRounds = GetRegulationHalfRounds();
+    return g_iCurrentRound == 0 || (iHalfRounds > 0 && g_iCurrentRound == iHalfRounds);
+}
+
+stock bool IsSecondRoundAfterPistol()
+{
+    int iHalfRounds = GetRegulationHalfRounds();
+    return g_iCurrentRound == 1 || (iHalfRounds > 0 && g_iCurrentRound == iHalfRounds + 1);
+}
+
+stock bool IsLastRoundOfCurrentHalf()
+{
+    int iMaxRounds = GetMaxRounds();
+    int iOvertimePlaying = GameRules_GetProp("m_nOvertimePlaying");
+    if (iOvertimePlaying > 0)
+    {
+        int iOvertimeMaxRounds = GetOvertimeMaxRounds();
+        int iOvertimeHalfRounds = iOvertimeMaxRounds / 2;
+        if (iOvertimeMaxRounds <= 0 || iOvertimeHalfRounds <= 0)
+            return false;
+
+        int iOvertimeBaseRound = iMaxRounds + (iOvertimePlaying - 1) * iOvertimeMaxRounds;
+        int iRoundInOvertime = g_iCurrentRound - iOvertimeBaseRound;
+        return iRoundInOvertime == iOvertimeHalfRounds - 1 || iRoundInOvertime == iOvertimeMaxRounds - 1;
+    }
+
+    int iHalfRounds = GetRegulationHalfRounds();
+    return (iHalfRounds > 0 && g_iCurrentRound == iHalfRounds - 1) || (iMaxRounds > 0 && g_iCurrentRound == iMaxRounds - 1);
+}
+
 void UpdateRoundsLost(bool won, int& roundsLost)
 {
     if (won) {
@@ -8812,7 +8887,7 @@ public void UpdateRoundTime()
 
 void CheckAWPDonation(int team)
 {
-    if (g_iCurrentRound == 0 || g_iCurrentRound == 1 || g_iCurrentRound == 12 || g_iCurrentRound == 13)
+    if (IsPistolRound() || IsSecondRoundAfterPistol())
         return;
 
     int awper = FindTeamAWPer(team);
@@ -9070,9 +9145,10 @@ void ResetLossBonusOnOvertimeHalftime()
     int iOvertimePlaying = GameRules_GetProp("m_nOvertimePlaying");
     if (iOvertimePlaying > 0)
     {
-        int iRoundsPerOvertimeHalf = FindConVar("mp_overtime_maxrounds").IntValue / 2;
-        int iTotalOvertimeRounds = g_iCurrentRound - FindConVar("mp_maxrounds").IntValue;
-        int iRoundsInCurrentOvertime = iTotalOvertimeRounds - (iOvertimePlaying - 1) * FindConVar("mp_overtime_maxrounds").IntValue;
+        int iOvertimeMaxRounds = GetOvertimeMaxRounds();
+        int iRoundsPerOvertimeHalf = iOvertimeMaxRounds / 2;
+        int iTotalOvertimeRounds = g_iCurrentRound - GetMaxRounds();
+        int iRoundsInCurrentOvertime = iTotalOvertimeRounds - (iOvertimePlaying - 1) * iOvertimeMaxRounds;
 
         if (iTotalOvertimeRounds == 0)
         {
@@ -9100,18 +9176,18 @@ stock bool ShouldForce(int iTeam)
     int iOvertimePlaying = GameRules_GetProp("m_nOvertimePlaying");
     GamePhase pGamePhase = view_as<GamePhase>(GameRules_GetProp("m_gamePhase"));
 
-    if (FindConVar("mp_halftime").BoolValue && pGamePhase == GAMEPHASE_PLAYING_FIRST_HALF)
+    if (IsHalftimeEnabled() && pGamePhase == GAMEPHASE_PLAYING_FIRST_HALF)
     {
         int iRoundsBeforeHalftime;
         if (iOvertimePlaying)
         {
             // Overtime halftime: mp_maxrounds + (2 * iOvertimePlaying - 1) * (mp_overtime_maxrounds / 2)
-            iRoundsBeforeHalftime = FindConVar("mp_maxrounds").IntValue + 
-                (2 * iOvertimePlaying - 1) * (FindConVar("mp_overtime_maxrounds").IntValue / 2);
+            iRoundsBeforeHalftime = GetMaxRounds() + 
+                (2 * iOvertimePlaying - 1) * (GetOvertimeMaxRounds() / 2);
         }
         else
         {
-            iRoundsBeforeHalftime = FindConVar("mp_maxrounds").IntValue / 2;
+            iRoundsBeforeHalftime = GetRegulationHalfRounds();
         }
 
         if (iRoundsBeforeHalftime > 0 && g_iRoundsPlayed == iRoundsBeforeHalftime - 1)
@@ -9130,8 +9206,8 @@ stock bool ShouldForce(int iTeam)
     }
 
     // Check if this is the last possible round
-    int iMaxRounds = FindConVar("mp_maxrounds").IntValue;
-    int iOvertimeMaxRounds = FindConVar("mp_overtime_maxrounds").IntValue;
+    int iMaxRounds = GetMaxRounds();
+    int iOvertimeMaxRounds = GetOvertimeMaxRounds();
     int iTotalRounds = iMaxRounds + iOvertimePlaying * iOvertimeMaxRounds;
     if (iMaxRounds > 0 && g_iCurrentRound == iTotalRounds - 1)
     {
@@ -9219,7 +9295,7 @@ stock bool ShouldUpgrade(int client)
 {
     int iAccount = GetEntProp(client, Prop_Send, "m_iAccount");
     
-    if ((g_iCurrentRound == 11 || g_iCurrentRound == 23) || iAccount > 8000)
+    if (IsLastRoundOfCurrentHalf() || iAccount > 8000)
     {
         return true;
     }
@@ -9230,7 +9306,7 @@ stock bool ShouldUpgrade(int client)
 stock int GetNumWinsToClinch()
 {
 	int iOvertimePlaying = GameRules_GetProp("m_nOvertimePlaying");
-	int iNumWinsToClinch = (FindConVar("mp_maxrounds").IntValue > 0 && FindConVar("mp_match_can_clinch").BoolValue) ? (FindConVar("mp_maxrounds").IntValue / 2 ) + 1 + iOvertimePlaying * (FindConVar("mp_overtime_maxrounds").IntValue / 2) : -1;
+	int iNumWinsToClinch = (GetMaxRounds() > 0 && CanMatchClinch()) ? GetRegulationHalfRounds() + 1 + iOvertimePlaying * (GetOvertimeMaxRounds() / 2) : -1;
 	return iNumWinsToClinch;
 }
 
